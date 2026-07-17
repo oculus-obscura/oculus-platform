@@ -1,0 +1,12 @@
+/**
+ * Global stylesheet entry. Import order matters:
+ *   1. tokens    — CSS custom properties (primitives → semantic). No selectors that paint.
+ *   2. base      — reset + element defaults (body, headings, prose, a11y).
+ *   3. utilities — reusable classes (.glass, .elev-*, layout primitives).
+ *
+ * Structure follows DESIGN.md (token tiers) and RESPONSIVE.md (layout primitives).
+ * Components should reference semantic tokens, never raw primitives.
+ */
+@import "./tokens.css";
+@import "./base.css";
+@import "./utilities.css";

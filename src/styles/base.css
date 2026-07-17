@@ -1,0 +1,117 @@
+/**
+ * Base layer — a light reset plus element defaults from DESIGN.md.
+ * Element rules here reference semantic tokens only. No component styling.
+ */
+
+/* ---- Reset ---- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+* {
+  margin: 0;
+}
+
+html {
+  -webkit-text-size-adjust: 100%; /* respect OS/browser text scaling */
+}
+
+body {
+  min-height: 100dvh;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: var(--fs-body);
+  letter-spacing: var(--ls-body);
+  line-height: var(--lh-body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+img,
+picture,
+video,
+canvas,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+input,
+button,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+/* ---- Type defaults (DESIGN.md) ---- */
+h1,
+.display {
+  font-family: var(--font-display);
+  font-size: var(--fs-display);
+  letter-spacing: var(--ls-display);
+  line-height: var(--lh-display);
+  color: var(--color-text);
+  font-weight: 400; /* Michroma ships at 400 only — never fake bold */
+}
+
+h2 {
+  font-family: var(--font-display);
+  font-size: var(--fs-h2);
+  letter-spacing: var(--ls-h2);
+  line-height: var(--lh-h2);
+  font-weight: 400;
+}
+
+h3 {
+  font-family: var(--font-body);
+  font-size: var(--fs-h3);
+  line-height: var(--lh-h2);
+}
+
+p {
+  font-family: var(--font-body);
+  font-size: var(--fs-body);
+  letter-spacing: var(--ls-body);
+  line-height: var(--lh-body);
+}
+
+a {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+a:hover {
+  color: var(--color-accent-hover);
+}
+
+/* numeric / data readouts: tabular figures so digits don't shift */
+.tnum,
+.data-value,
+[data-numeric] {
+  font-family: var(--font-body);
+  font-feature-settings: "tnum" 1, "zero" 1;
+}
+
+/* ---- Accessibility floor (DESIGN.md) ---- */
+
+/* Visible focus ring on keyboard focus. Don't remove outlines. */
+:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* Reduced motion: hold static frames. The train timer's functional
+   progression is re-enabled in JS where needed (it's function, not decoration). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

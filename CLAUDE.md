@@ -33,15 +33,16 @@ Michroma (display / H1–H2 only — it's 400-weight, sized big) + Space Grotesk
 
 ## Tech stack
 
-<!-- Fill in once decided so Claude Code stops guessing. Example: -->
-<!-- - Build: Vite + vanilla TS (or React) -->
-<!-- - 3D: three.js  |  Charts: D3  |  Maps/flow: deck.gl -->
-<!-- - Data pipeline: Rhino DXF → depthmapX (VGA + agents) → CSV → pandas/GeoJSON → deck.gl/D3 -->
-<!-- - Package manager: npm / pnpm -->
+- Build: Vite + React + TypeScript (strict)
+- 3D: three.js  |  Charts: D3  |  Maps/flow: deck.gl
+- Backend/data: Supabase (`@supabase/supabase-js`) — env vars `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (see `.env.example`; real `.env` is gitignored)
+- Styling: plain CSS + CSS custom properties (no Tailwind — design tokens are CSS variables per `DESIGN.md`)
+- Package manager: npm
 
 ## Working conventions
 
-<!-- Fill in as the repo takes shape. Example: -->
-<!-- - Run dev: `npm run dev`  |  Build: `npm run build`  |  Lint: `npm run lint` -->
-<!-- - Source in `/src`; design tokens in `/src/styles/tokens.css` -->
-<!-- - Prefer small, reviewable changes; don't refactor unrelated code in a task -->
+- Run dev: `npm run dev`  |  Build: `npm run build`  |  Typecheck: `npm run typecheck`  |  Preview build: `npm run preview`
+- Source in `/src`; app entry `src/main.tsx` → `src/App.tsx`
+- Styles in `src/styles/`: `index.css` imports `tokens.css` (primitives → semantic, from `DESIGN.md`), then `base.css` (reset + element/a11y defaults), then `utilities.css` (`.glass`, `.elev-*`, layout primitives from `RESPONSIVE.md`). Design tokens live in `src/styles/tokens.css`.
+- Never commit secrets: `.env` is gitignored; keep `.env.example` in sync when adding `VITE_` vars.
+- Prefer small, reviewable changes; don't refactor unrelated code in a task.

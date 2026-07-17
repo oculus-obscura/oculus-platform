@@ -1,0 +1,60 @@
+/**
+ * Utilities — reusable classes built from tokens. Structure only; no screens.
+ * Glass/elevation from DESIGN.md; layout primitives from RESPONSIVE.md.
+ */
+
+/* ---- Glass (the single most reused surface: nav, modals, panels, cards) ----
+   Always keeps a non-blur fallback background (--glass-bg) so text stays
+   readable over the animated model when backdrop-filter is dropped. */
+.glass {
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+}
+
+/* ---- Elevation without drop shadows (surface tint + hairline + optional glow) ---- */
+.elev-1 {
+  background: var(--color-surface-1);
+  border: 1px solid var(--color-border);
+}
+.elev-2 {
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border-strong);
+}
+.elev-3 {
+  background: var(--color-surface-3);
+  border: 1px solid var(--color-border-strong);
+  box-shadow: var(--glow-accent);
+}
+
+/* ---- Layout primitives that don't break (RESPONSIVE.md) ---- */
+
+/* content column that never overflows on small screens */
+.container {
+  width: min(100% - 2 * var(--space-4), var(--container-max));
+  margin-inline: auto;
+}
+
+/* prose measure caps line length but shrinks freely */
+.prose {
+  max-width: min(100%, var(--content-max));
+}
+
+/* auto-reflowing card grid — no breakpoints needed */
+.auto-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
+  gap: var(--space-5);
+}
+
+/* opt a component into container queries based on its OWN width */
+.cq {
+  container-type: inline-size;
+}
+
+/* flex children that must be allowed to shrink (prevents overflow) */
+.min-w-0 {
+  min-width: 0;
+}

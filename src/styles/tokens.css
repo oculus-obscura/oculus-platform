@@ -1,0 +1,192 @@
+/**
+ * Design tokens — the single source of truth for the visual language.
+ * Copied faithfully from DESIGN.md. Three tiers:
+ *   primitive → semantic → (component-local, defined near components)
+ *
+ * RULE: components reference SEMANTIC tokens (--color-*, --data-*, --space-*, …).
+ * Only the semantic layer references primitives (--tp-*). To retheme, change a
+ * primitive value or a semantic mapping — components don't move.
+ *
+ * Do not invent colors, type sizes, or spacing. Pull from here.
+ */
+
+/* ============================================================
+   PRIMITIVES — raw values. Never reference these from components.
+   ============================================================ */
+:root {
+  /* ---- SHELL PALETTE (from brand spec) ---- */
+  --tp-space-black: #0a0a0a; /* primary background */
+  --tp-smoked-titanium: #505556; /* smoked glass / metallic surfaces */
+  --tp-titanium-pearl: #e8e8e3; /* primary light / structural ribs */
+  --tp-teal-500: #1a8787; /* signature accent */
+
+  /* shell surface tints (lifted planes on black — see Elevation) */
+  --tp-surface-1: #111314;
+  --tp-surface-2: #16191a;
+  --tp-surface-3: #1c2021;
+
+  /* flurry gradient stops (ambient motion, glow, particles) */
+  --tp-flurry-1: #0b4546;
+  --tp-flurry-2: #1a8787;
+  --tp-flurry-3: #3ccfcf;
+  --tp-flurry-4: #8de8e0;
+
+  /* ---- DATA ENCODING PALETTE (vivid, viz-only) ---- */
+  /* Tuned to pop on Space Black. These are meant to be loud. */
+  --tp-data-teal: #2ce0d2; /* MEASURED / existing        */
+  --tp-data-amber: #ffb020; /* UNCERTAIN / edge           */
+  --tp-data-plum: #e24fd1; /* MISSING / interior void    */
+
+  /* dim companions — for interpolated / secondary series
+     (measured-dim intentionally = shell teal, so "solid bright vs
+     dim" reads as "measured vs interpolated") */
+  --tp-data-teal-dim: #1a8787;
+  --tp-data-amber-dim: #8a6412;
+  --tp-data-plum-dim: #7a2b72;
+
+  /* optional extra categorical hues when a chart needs >3 series
+     (harmonized to the world; use sparingly, after the 3 above) */
+  --tp-data-blue: #4d9dff;
+  --tp-data-green: #4de08a;
+
+  /* heat ramp for idle-time clips (low → high). Cross-hue so heat
+     literally reads as "cooler = calm, hotter = alert". */
+  --tp-heat-0: #0b4546;
+  --tp-heat-1: #1a8787;
+  --tp-heat-2: #3ccfcf;
+  --tp-heat-3: #ffb020;
+  --tp-heat-4: #e24fd1;
+}
+
+/* ============================================================
+   SEMANTIC TOKENS — the layer components actually use. Retheme here.
+   ============================================================ */
+:root {
+  /* backgrounds & surfaces */
+  --color-bg: var(--tp-space-black);
+  --color-surface-1: var(--tp-surface-1);
+  --color-surface-2: var(--tp-surface-2);
+  --color-surface-3: var(--tp-surface-3);
+
+  /* text */
+  --color-text: var(--tp-titanium-pearl);
+  --color-text-muted: #9da3a3; /* pearl dimmed for secondary copy */
+  --color-text-faint: #6b7070; /* captions, disabled labels       */
+
+  /* accent (shell) */
+  --color-accent: var(--tp-teal-500);
+  --color-accent-hover: #23a3a3;
+  --color-on-accent: var(--tp-space-black);
+
+  /* lines & borders */
+  --color-border: rgba(232, 232, 227, 0.12); /* titanium hairline */
+  --color-border-strong: rgba(232, 232, 227, 0.22);
+  --color-divider: rgba(232, 232, 227, 0.08);
+
+  /* data channels (semantic names — use THESE in charts) */
+  --data-measured: var(--tp-data-teal);
+  --data-edge: var(--tp-data-amber);
+  --data-missing: var(--tp-data-plum);
+  --data-measured-2: var(--tp-data-teal-dim);
+  --data-edge-2: var(--tp-data-amber-dim);
+  --data-missing-2: var(--tp-data-plum-dim);
+
+  /* feedback (keep subtle; don't collide with data channels) */
+  --color-success: var(--tp-data-green);
+  --color-warning: var(--tp-data-amber);
+  --color-danger: #ff5c6c;
+
+  /* focus ring */
+  --color-focus: var(--tp-data-teal);
+}
+
+/* ============================================================
+   TYPOGRAPHY
+   ============================================================ */
+:root {
+  --font-display: "Michroma", system-ui, sans-serif;
+  --font-body: "Space Grotesk", system-ui, sans-serif;
+
+  /* fluid type — scales 360px → 1440px viewport, then clamps.
+     H1/H2 use --font-display; everything else --font-body. */
+  --fs-display: clamp(2.5rem, 1.35rem + 5.1vw, 7.5rem); /* 40 → 120 */
+  --fs-h2: clamp(2rem, 1.55rem + 2vw, 3.5rem); /* 32 → 56  */
+  --fs-h3: clamp(1.25rem, 1.1rem + 0.67vw, 1.75rem); /* 20 → 28  */
+  --fs-body-lg: clamp(1.125rem, 1.08rem + 0.2vw, 1.25rem); /* 18 → 20  */
+  --fs-body: 1rem; /* 16 */
+  --fs-caption: 0.8125rem; /* 13 */
+
+  /* letter-spacing (brand spec) */
+  --ls-display: 0.14em;
+  --ls-h2: 0.1em;
+  --ls-body: 0.02em;
+
+  /* line-height */
+  --lh-display: 1.05;
+  --lh-h2: 1.25;
+  --lh-body: 1.6;
+}
+
+/* ============================================================
+   SPACING, RADIUS, LAYOUT
+   ============================================================ */
+:root {
+  /* 4px base, 8pt-ish rhythm */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4rem;
+  --space-9: 6rem;
+  --space-10: 8rem;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 999px;
+
+  --container-max: 1440px;
+  --content-max: 72ch; /* readable prose measure */
+}
+
+/* ============================================================
+   SURFACES, GLASS & ELEVATION
+   ============================================================ */
+:root {
+  --glass-bg: rgba(17, 19, 20, 0.55); /* tinted space black */
+  --glass-border: rgba(232, 232, 227, 0.12); /* titanium hairline  */
+  --glass-blur: 20px;
+  --glass-saturate: 120%;
+  --glow-accent: 0 0 40px rgba(26, 135, 135, 0.25);
+}
+
+/* ============================================================
+   MOTION
+   ============================================================ */
+:root {
+  --dur-fast: 160ms; /* hovers, small state changes  */
+  --dur-base: 240ms; /* card open/close, transitions  */
+  --dur-slow: 400ms; /* screen transitions            */
+  --dur-slower: 700ms; /* orchestrated reveals          */
+  --dur-ambient: 12s; /* flurry / idle atmosphere loop  */
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1); /* default; Apple-ish glide */
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+/* ============================================================
+   BREAKPOINTS (structural only — see RESPONSIVE.md)
+   Kept as custom properties for reference; media queries can't read
+   them directly, so mirror these literals in @media/@container rules.
+   ============================================================ */
+:root {
+  --bp-sm: 640px; /* phone → large phone */
+  --bp-md: 768px; /* tablet              */
+  --bp-lg: 1024px; /* small laptop        */
+  --bp-xl: 1280px; /* desktop             */
+}
