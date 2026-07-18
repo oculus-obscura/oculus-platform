@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Michroma&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/MotionPathPlugin.min.js"></script>
+<style>
+  html,body{margin:0;padding:0;background:#0A0A0A;}
+  *{box-sizing:border-box;}
+  a{color:#1A8787;text-decoration:none;}
+  a:hover{color:#3CCFCF;}
+  @keyframes blink{0%,48%{opacity:1}49%,100%{opacity:0}}
+  @keyframes hl{0%,100%{opacity:1}50%{opacity:0.45}}
+  @keyframes drift{0%{transform:translate(-5%,4%) scale(1)}50%{transform:translate(6%,-6%) scale(1.16)}100%{transform:translate(-5%,4%) scale(1)}}
+  @keyframes drift2{0%{transform:translate(5%,-4%) scale(1.12)}50%{transform:translate(-6%,6%) scale(0.94)}100%{transform:translate(5%,-4%) scale(1.12)}}
+  @keyframes ctaPulse{0%,100%{box-shadow:0 0 14px rgba(26,135,135,0.28)}50%{box-shadow:0 0 32px rgba(26,135,135,0.62)}}
+  @keyframes ctaPulseHover{0%,100%{box-shadow:0 0 26px rgba(26,135,135,0.5)}50%{box-shadow:0 0 48px rgba(60,207,207,0.78)}}
+  @keyframes numFloat{0%{opacity:0;transform:translateY(10px)}25%{opacity:1}55%{opacity:1;transform:translateY(-6px)}100%{opacity:0;transform:translateY(-20px)}}
+  @keyframes grainShift{0%{background-position:0 0}20%{background-position:-12px 8px}40%{background-position:9px -11px}60%{background-position:-7px -9px}80%{background-position:11px 7px}100%{background-position:0 0}}
+  @keyframes scanSweep{0%{transform:translateX(-60vw) skewX(-8deg)}100%{transform:translateX(165vw) skewX(-8deg)}}
+</style>
+</helmet>
+<div class="stage" ref="{{ root }}" style="position:relative;width:100vw;height:100vh;overflow:hidden;background:#0A0A0A;font-family:'Space Grotesk',system-ui,sans-serif;">
+
+  <div class="datalayer" style="position:absolute;inset:0;z-index:0;pointer-events:none;opacity:0.6;filter:blur(1.5px);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;">
+    <span class="datanum" style="position:absolute;white-space:nowrap;letter-spacing:0.08em;left:8%;top:16%;font-size:clamp(0.7rem,1.3vw,0.95rem);color:rgba(60,207,207,0.36);animation:numFloat 9s ease-in-out 0s infinite;">40.7112 N</span>
+    <span class="datanum" style="position:absolute;white-space:nowrap;letter-spacing:0.08em;left:78%;top:12%;font-size:clamp(0.7rem,1.3vw,0.95rem);color:rgba(60,207,207,0.3);animation:numFloat 11s ease-in-out 2.5s infinite;">74.0123 W</span>
+    <span class="datanum" style="position:absolute;white-space:nowrap;letter-spacing:0.08em;left:22%;top:71%;font-size:clamp(0.75rem,1.5vw,1.05rem);color:rgba(26,135,135,0.5);animation:numFloat 8.5s ease-in-out 1.2s infinite;">07:42</span>
+    <span class="datanum" style="position:absolute;white-space:nowrap;letter-spacing:0.08em;left:83%;top:64%;font-size:clamp(0.75rem,1.5vw,1.05rem);color:rgba(26,135,135,0.44);animation:numFloat 10s ease-in-out 4s infinite;">08:15</span>
+    <span class="datanum" style="position:absolute;white-space:nowrap;letter-spacing:0.08em;left:11%;top:44%;font-size:clamp(0.7rem,1.3vw,0.95rem);color:rgba(60,207,207,0.3);animation:numFloat 12s ease-in-out 3s infinite;">12,431 / hr</span>
+    <span class="datanum" style="position:absolute;white-space:nowrap;letter-spacing:0.08em;left:70%;top:83%;font-size:clamp(0.7rem,1.3vw,0.95rem);color:rgba(60,207,207,0.34);animation:numFloat 9.5s ease-in-out 5.5s infinite;">R2 &#183; 06:58</span>
+    <span class="datanum" style="position:absolute;white-space:nowrap;letter-spacing:0.08em;left:44%;top:9%;font-size:clamp(0.68rem,1.2vw,0.9rem);color:rgba(26,135,135,0.4);animation:numFloat 10.5s ease-in-out 1.8s infinite;">N 40.7127</span>
+    <span class="datanum" style="position:absolute;white-space:nowrap;letter-spacing:0.08em;left:33%;top:87%;font-size:clamp(0.68rem,1.2vw,0.9rem);color:rgba(26,135,135,0.4);animation:numFloat 11.5s ease-in-out 6.2s infinite;">W 74.0134</span>
+    <span class="datanum" style="position:absolute;white-space:nowrap;letter-spacing:0.08em;left:88%;top:38%;font-size:clamp(0.7rem,1.3vw,0.95rem);color:rgba(60,207,207,0.32);animation:numFloat 8s ease-in-out 2.2s infinite;">23,214</span>
+    <span class="datanum" style="position:absolute;white-space:nowrap;letter-spacing:0.08em;left:5%;top:82%;font-size:clamp(0.7rem,1.3vw,0.95rem);color:rgba(60,207,207,0.3);animation:numFloat 12.5s ease-in-out 7s infinite;">&#916; 1,204</span>
+    <span class="datanum" style="position:absolute;white-space:nowrap;letter-spacing:0.08em;left:60%;top:24%;font-size:clamp(0.66rem,1.1vw,0.85rem);color:rgba(26,135,135,0.38);animation:numFloat 10s ease-in-out 4.8s infinite;">SW / 214</span>
+    <span class="datanum" style="position:absolute;white-space:nowrap;letter-spacing:0.08em;left:18%;top:30%;font-size:clamp(0.66rem,1.1vw,0.85rem);color:rgba(26,135,135,0.36);animation:numFloat 9s ease-in-out 3.6s infinite;">18,902</span>
+  </div>
+
+  <svg class="field" viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid slice" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;z-index:1;">
+    <g class="grid" style="opacity:0;filter:blur(0.5px);">
+      <sc-for list="{{ gridLines }}" as="g" hint-placeholder-count="32">
+        <line class="grid-line" x1="{{ g.x1 }}" y1="{{ g.y1 }}" x2="{{ g.x2 }}" y2="{{ g.y2 }}" stroke="#1A8787" stroke-width="0.6" style="opacity:0.16;"></line>
+      </sc-for>
+    </g>
+
+    <g class="routes-group" style="filter:drop-shadow(0 0 4px rgba(26,135,135,0.4));">
+      <sc-for list="{{ routes }}" as="r" hint-placeholder-count="9">
+        <path class="route" d="{{ r.d }}" fill="none" stroke="#1A8787" stroke-width="1.3" stroke-linecap="round" style="opacity:0.55;"></path>
+      </sc-for>
+    </g>
+
+    <g class="pings">
+      <sc-for list="{{ routes }}" as="r" hint-placeholder-count="9">
+        <circle class="ping" cx="{{ r.ex }}" cy="{{ r.ey }}" r="5" fill="none" stroke="#3CCFCF" stroke-width="1.4" style="opacity:0;"></circle>
+      </sc-for>
+    </g>
+
+    <g id="ringGroup">
+      <circle id="ring" cx="500" cy="500" r="150" fill="none" stroke="#1A8787" stroke-width="2" style="filter:drop-shadow(0 0 7px rgba(26,135,135,0.6));"></circle>
+      <g id="nodesGroup" style="opacity:1;filter:drop-shadow(0 0 6px rgba(141,232,224,0.85));">
+        <sc-for list="{{ routes }}" as="r" hint-placeholder-count="9">
+          <circle class="node" cx="{{ r.ex }}" cy="{{ r.ey }}" r="4.6" fill="#8DE8E0" style="opacity:0;"></circle>
+        </sc-for>
+      </g>
+    </g>
+
+    <g class="trains" style="filter:drop-shadow(0 0 4px rgba(60,207,207,0.65));">
+      <sc-for list="{{ routes }}" as="r" hint-placeholder-count="9">
+        <g class="train" style="opacity:0;">
+          <rect x="-13" y="-4" width="26" height="8" rx="1.6" fill="rgba(9,28,28,0.62)" stroke="#1A8787" stroke-width="0.7"></rect>
+          <line x1="-11" y1="-2" x2="11.5" y2="-2" stroke="#1A8787" stroke-width="0.35" opacity="0.5"></line>
+          <line x1="-11" y1="2" x2="11.5" y2="2" stroke="#1A8787" stroke-width="0.35" opacity="0.5"></line>
+          <g stroke="#3CCFCF" stroke-width="0.3" opacity="0.7">
+            <rect x="-9.5" y="-1.6" width="4" height="3.2" rx="0.4" fill="rgba(26,135,135,0.45)"></rect>
+            <line x1="-8.4" y1="-1.6" x2="-8.4" y2="1.6"></line>
+            <line x1="-7.5" y1="-1.6" x2="-7.5" y2="1.6"></line>
+            <line x1="-6.6" y1="-1.6" x2="-6.6" y2="1.6"></line>
+            <rect x="-3.2" y="-1.6" width="4" height="3.2" rx="0.4" fill="rgba(26,135,135,0.45)"></rect>
+            <line x1="-2.1" y1="-1.6" x2="-2.1" y2="1.6"></line>
+            <line x1="-1.2" y1="-1.6" x2="-1.2" y2="1.6"></line>
+            <line x1="-0.3" y1="-1.6" x2="-0.3" y2="1.6"></line>
+          </g>
+          <g stroke="#3CCFCF" stroke-width="0.4" opacity="0.5">
+            <line x1="-8" y1="-4" x2="-8" y2="-2.9"></line><line x1="-8" y1="4" x2="-8" y2="2.9"></line>
+            <line x1="-3.6" y1="-4" x2="-3.6" y2="-2.9"></line><line x1="-3.6" y1="4" x2="-3.6" y2="2.9"></line>
+            <line x1="0.8" y1="-4" x2="0.8" y2="-2.9"></line><line x1="0.8" y1="4" x2="0.8" y2="2.9"></line>
+            <line x1="5.2" y1="-4" x2="5.2" y2="-2.9"></line><line x1="5.2" y1="4" x2="5.2" y2="2.9"></line>
+          </g>
+          <rect x="6.4" y="-3" width="4.6" height="6" rx="1.1" fill="#3CCFCF" opacity="0.5"></rect>
+          <rect x="11.5" y="-3.6" width="1.4" height="7.2" rx="0.7" fill="#3CCFCF" opacity="0.9"></rect>
+          <circle class="train-light" cx="13" cy="0" r="1.1" fill="#8DE8E0" style="animation:hl 1.6s ease-in-out infinite;"></circle>
+        </g>
+      </sc-for>
+    </g>
+  </svg>
+
+  <div class="bignum" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:2;pointer-events:none;opacity:0;">
+    <span class="bignum-val" style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:clamp(3rem,13vw,10rem);font-weight:400;letter-spacing:0.02em;color:rgba(60,207,207,0.1);filter:blur(1px);">0</span>
+  </div>
+
+  <div class="scan" style="position:absolute;top:-10%;bottom:-10%;left:0;width:44vw;z-index:2;pointer-events:none;mix-blend-mode:screen;filter:blur(11px);background:linear-gradient(100deg, rgba(60,207,207,0) 0%, rgba(60,207,207,0.06) 45%, rgba(141,232,224,0.045) 55%, rgba(60,207,207,0) 100%);animation:scanSweep 12s cubic-bezier(0.65,0,0.35,1) infinite;"></div>
+
+  <div class="flurry" style="position:absolute;inset:0;mix-blend-mode:screen;pointer-events:none;opacity:0;z-index:3;">
+    <div class="flurry-blob" style="position:absolute;top:50%;left:50%;width:72vmin;height:72vmin;margin:-36vmin 0 0 -36vmin;border-radius:50%;filter:blur(72px);opacity:0.5;background:radial-gradient(circle at 50% 50%, #0B4546 0%, rgba(11,69,70,0) 68%);animation:drift 17s cubic-bezier(0.65,0,0.35,1) infinite;"></div>
+    <div class="flurry-blob" style="position:absolute;top:50%;left:50%;width:60vmin;height:60vmin;margin:-30vmin 0 0 -30vmin;border-radius:50%;filter:blur(66px);opacity:0.42;background:radial-gradient(circle at 50% 50%, #1A8787 0%, rgba(26,135,135,0) 66%);animation:drift2 13s cubic-bezier(0.65,0,0.35,1) infinite;"></div>
+    <div class="flurry-blob" style="position:absolute;top:50%;left:50%;width:46vmin;height:46vmin;margin:-23vmin 0 0 -23vmin;border-radius:50%;filter:blur(58px);opacity:0.3;background:radial-gradient(circle at 50% 50%, #3CCFCF 0%, rgba(60,207,207,0) 62%);animation:drift 21s cubic-bezier(0.65,0,0.35,1) infinite reverse;"></div>
+    <div class="flurry-blob" style="position:absolute;top:50%;left:50%;width:32vmin;height:32vmin;margin:-16vmin 0 0 -16vmin;border-radius:50%;filter:blur(48px);opacity:0.22;background:radial-gradient(circle at 50% 50%, #8DE8E0 0%, rgba(141,232,224,0) 60%);animation:drift2 11s cubic-bezier(0.65,0,0.35,1) infinite;"></div>
+  </div>
+
+  <div class="paragraph" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:40vh 7vw 4vh;z-index:4;pointer-events:none;">
+    <div style="display:flex;flex-direction:column;align-items:center;max-width:54ch;width:100%;">
+      <p class="p-line" style="margin:0;font-weight:400;font-size:clamp(0.85rem,1.55vw,1.04rem);line-height:1.7;color:#E8E8E3;text-align:center;text-wrap:pretty;"><sc-for list="{{ paraLines }}" as="ln" hint-placeholder-count="6"><sc-for list="{{ ln.words }}" as="w" hint-placeholder-count="14"><span class="p-word" style="display:inline-block;margin-right:0.28em;opacity:0;">{{ w.t }}</span></sc-for></sc-for><sc-for list="{{ lastLineWords }}" as="w" hint-placeholder-count="4"><span class="p-word" style="display:inline-block;margin-right:0.28em;opacity:0;font-weight:500;">{{ w.t }}</span></sc-for></p>
+      <div style="display:flex;justify-content:center;margin-top:clamp(16px,2.4vh,30px);pointer-events:none;">
+        <button class="cta" onClick="{{ onEnter }}" style="opacity:0;transform:translateY(12px);pointer-events:auto;font-family:'Space Grotesk',sans-serif;font-weight:500;font-size:clamp(0.9rem,1.6vw,1.05rem);letter-spacing:0.05em;color:#E8E8E3;background:rgba(26,135,135,0.1);border:1px solid rgba(26,135,135,0.55);border-radius:12px;padding:14px 30px;cursor:pointer;backdrop-filter:blur(6px);box-shadow:0 0 20px rgba(26,135,135,0.35);animation:ctaPulse 2.5s ease-in-out infinite;transition:background .35s cubic-bezier(0.16,1,0.3,1),border-color .35s cubic-bezier(0.16,1,0.3,1);" style-hover="background:rgba(26,135,135,0.2);border-color:#3CCFCF;animation:ctaPulseHover 2.5s ease-in-out infinite;">Enter the Ledger</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="lockup" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 6vw;pointer-events:none;z-index:5;">
+    <h1 class="title" style="margin:0;font-family:'Michroma',sans-serif;font-weight:400;letter-spacing:0.14em;color:#E8E8E3;font-size:clamp(1.9rem,7vw,5.2rem);line-height:1.08;text-align:center;text-shadow:0 0 22px rgba(26,135,135,0.32);">
+      <span class="t-word" style="display:inline-block;white-space:nowrap;"><sc-for list="{{ titleW1 }}" as="c" hint-placeholder-count="6"><span class="t-char" style="display:inline-block;opacity:0;">{{ c.ch }}</span></sc-for></span><span style="display:inline;"> </span><span class="t-word" style="display:inline-block;white-space:nowrap;"><sc-for list="{{ titleW2 }}" as="c" hint-placeholder-count="7"><span class="t-char" style="display:inline-block;opacity:0;">{{ c.ch }}</span></sc-for></span><span class="caret title-caret" style="opacity:0;display:inline-block;"><span class="caret-bar" style="display:inline-block;width:0.07em;height:0.92em;background:#1A8787;margin-left:0.1em;vertical-align:-0.06em;box-shadow:0 0 9px rgba(26,135,135,0.85);animation:blink 1.05s steps(1) infinite;"></span></span>
+    </h1>
+
+    <div class="underline" style="opacity:0;transform:scaleX(0);width:min(48vw,540px);height:2px;margin:clamp(10px,2vh,22px) 0;border-radius:2px;background:linear-gradient(90deg,rgba(26,135,135,0),#1A8787,rgba(26,135,135,0));box-shadow:0 0 11px rgba(26,135,135,0.55);"></div>
+
+    <p class="subtitle" style="margin:0;font-family:'Space Grotesk',sans-serif;font-weight:400;font-size:clamp(0.85rem,2.4vw,1.2rem);letter-spacing:0.02em;color:#9DA3A3;text-align:center;">
+      <sc-for list="{{ subChars }}" as="c" hint-placeholder-count="36">
+        <span class="s-char" style="display:inline-block;opacity:0;">{{ c.ch }}</span>
+      </sc-for><span class="caret sub-caret" style="opacity:0;display:inline-block;"><span class="caret-bar" style="display:inline-block;width:0.08em;height:0.9em;background:#9DA3A3;margin-left:0.08em;vertical-align:-0.06em;box-shadow:0 0 7px rgba(157,163,163,0.6);animation:blink 1.05s steps(1) infinite;"></span></span>
+    </p>
+  </div>
+
+  <div class="vignette" style="position:absolute;inset:0;z-index:6;pointer-events:none;background:radial-gradient(ellipse 78% 76% at 50% 46%, rgba(0,0,0,0) 52%, rgba(0,0,0,0.52) 100%);"></div>
+
+  <div class="grain" style="position:absolute;inset:0;z-index:7;pointer-events:none;opacity:0.06;mix-blend-mode:overlay;background-size:120px 120px;background-image:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E&quot;);animation:grainShift 0.55s steps(1) infinite;"></div>
+
+  <sc-if value="{{ showReplay }}" hint-placeholder-val="{{ true }}">
+    <button class="replay" onClick="{{ replay }}" style="position:absolute;bottom:22px;right:24px;z-index:8;font-family:'Space Grotesk',sans-serif;font-size:0.78rem;letter-spacing:0.06em;color:#9DA3A3;background:rgba(10,10,10,0.4);border:1px solid rgba(157,163,163,0.22);border-radius:9px;padding:8px 14px;cursor:pointer;backdrop-filter:blur(4px);transition:color .3s,border-color .3s;" style-hover="color:#3CCFCF;border-color:rgba(26,135,135,0.55);">&#8635;&nbsp;&nbsp;Replay</button>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{
+  &quot;$preview&quot;: { &quot;width&quot;: 1280, &quot;height&quot;: 800 },
+  &quot;sequenceSpeed&quot;: { &quot;editor&quot;: &quot;range&quot;, &quot;default&quot;: 1, &quot;min&quot;: 0.5, &quot;max&quot;: 1.6, &quot;step&quot;: 0.05, &quot;unit&quot;: &quot;x&quot;, &quot;tsType&quot;: &quot;number&quot;, &quot;section&quot;: &quot;Playback&quot; },
+  &quot;loop&quot;: { &quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: false, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Playback&quot; },
+  &quot;showReplay&quot;: { &quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: true, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Playback&quot; }
+}">
+class Component extends DCLogic {
+  root = React.createRef();
+
+  get geo() { if (!this._geo) this._geo = this.buildGeo(); return this._geo; }
+  buildGeo() {
+    const cx = 500, cy = 500, R = 150;
+    const grid = [];
+    const lo = -100, hi = 1100, step = 80;
+    for (let x = lo; x <= hi; x += step) grid.push({ x1: x, y1: lo, x2: x, y2: hi });
+    for (let y = lo; y <= hi; y += step) grid.push({ x1: lo, y1: y, x2: hi, y2: y });
+    // Directions biased toward a clockwise cardinal sweep (S, W, N, E) but kept organic.
+    const angs = [-88, -50, -18, 26, 64, 118, 156, 202, 254];
+    const curves = [170, -140, 210, -90, 150, -195, 120, -165, 95];
+    const f = n => Number(n.toFixed(1));
+    const routes = angs.map((deg, i) => {
+      const a = deg * Math.PI / 180, ux = Math.cos(a), uy = Math.sin(a);
+      const px = -uy, py = ux, k = curves[i];
+      const sx = cx + 960 * ux, sy = cy + 960 * uy;
+      // node/endpoint seated EXACTLY on the ring: (cx + R*cos, cy + R*sin), same R as the circle
+      const ex = cx + R * ux, ey = cy + R * uy;
+      const c1x = cx + 620 * ux + px * k, c1y = cy + 620 * uy + py * k;
+      const c2x = cx + 300 * ux + px * k * 0.4, c2y = cy + 300 * uy + py * k * 0.4;
+      return { d: `M ${f(sx)},${f(sy)} C ${f(c1x)},${f(c1y)} ${f(c2x)},${f(c2y)} ${f(ex)},${f(ey)}`, ex: f(ex), ey: f(ey) };
+    });
+    return { grid, routes };
+  }
+  splitWords(s) { return s.split(' ').map(t => ({ t })); }
+  get paraLines() {
+    return [
+      "A public transit and commerce hub that keeps a private ledger.",
+      "The Oculus sees roughly 33 million visits a year, and the retail inside it is high-end, curated for someone with money to spend.",
+      "That data, who actually walks through, who actually shops, is reported only to the landlord. Never made public.",
+      "This platform builds the missing ledger.",
+      "Explore what we know so far, then play a two-minute round as a commuter with a train to catch.",
+      "Spend the time however you would."
+    ].map(s => ({ words: this.splitWords(s) }));
+  }
+  get lastLineWords() { return this.splitWords("The record starts now."); }
+  get titleW1() { return "OCULUS".split('').map(ch => ({ ch })); }
+  get titleW2() { return "OBSCURA".split('').map(ch => ({ ch })); }
+  get subChars() { return "The missing ledger, built in public.".split('').map(ch => ({ ch: ch === ' ' ? '\u00A0' : ch })); }
+
+  renderVals() {
+    const g = this.geo;
+    return {
+      root: this.root,
+      gridLines: g.grid,
+      routes: g.routes,
+      paraLines: this.paraLines,
+      lastLineWords: this.lastLineWords,
+      titleW1: this.titleW1,
+      titleW2: this.titleW2,
+      subChars: this.subChars,
+      replay: () => this.replay(),
+      onEnter: () => this.replay(),
+      showReplay: this.props.showReplay !== false,
+    };
+  }
+
+  componentDidMount() {
+    this.ready(() => window.gsap && window.MotionPathPlugin).then(() => this.init());
+  }
+  componentDidUpdate() {
+    if (this.tl && this.props.sequenceSpeed) this.tl.timeScale(this.props.sequenceSpeed);
+  }
+  ready(cond) {
+    return new Promise(res => { const t = () => cond() ? res() : setTimeout(t, 30); t(); });
+  }
+
+  init() {
+    const gsap = window.gsap;
+    gsap.registerPlugin(window.MotionPathPlugin);
+    this.gsap = gsap;
+    const q = gsap.utils.selector(this.root.current);
+    this.q = q;
+    const prep = el => { const L = el.getTotalLength(); el._len = L; gsap.set(el, { strokeDasharray: L, strokeDashoffset: L }); };
+    q('.grid-line').forEach(prep);
+    q('.route').forEach(prep);
+    prep(q('#ring')[0]);
+    this.glide = Math.round((window.innerHeight || 800) * 0.26);
+    this.reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (this.reduced) { this.showStatic(); return; }
+    this.buildTL();
+  }
+
+  buildTL() {
+    const { gsap, q } = this;
+    const REVEAL = 'expo.out';
+    const GLIDE = this.glide;
+    const ringLen = q('#ring')[0]._len;
+    const routes = this.geo.routes;
+    const trains = q('.train'), nodes = q('.node'), pings = q('.ping'), routeEls = q('.route'), pwords = q('.p-word');
+    const tl = gsap.timeline({
+      onComplete: () => { if (this.props.loop) gsap.delayedCall(1.8, () => this.replay()); }
+    });
+
+    // ---- initial states at t=0 (replay-safe) ----
+    tl.set(q('.field'), { opacity: 1 }, 0)
+      .set(q('.grid'), { opacity: 0 }, 0)
+      .set(q('.grid-line'), { strokeDashoffset: (i, t) => t._len }, 0)
+      .set(q('.route'), { strokeDashoffset: (i, t) => t._len, opacity: 0.55 }, 0)
+      .set(trains, { opacity: 0, scale: 1, x: 0, y: 0, rotation: 0 }, 0)
+      .set(nodes, { opacity: 0, attr: { r: 4.6 }, clearProps: 'transform' }, 0)
+      .set(pings, { opacity: 0, attr: { r: 5 } }, 0)
+      .set(q('#ringGroup'), { opacity: 1, scale: 1, svgOrigin: '500 500' }, 0)
+      .set(q('#ring'), { strokeDashoffset: ringLen, opacity: 1 }, 0)
+      .set(q('#nodesGroup'), { opacity: 1, rotation: 0, svgOrigin: '500 500' }, 0)
+      .set(q('.flurry'), { opacity: 0, y: 0 }, 0)
+      .set(q('.bignum'), { opacity: 0 }, 0)
+      .set(q('.lockup'), { y: 0, scale: 1, transformOrigin: '50% 50%' }, 0)
+      .set(q('.paragraph'), { opacity: 1 }, 0)
+      .set(pwords, { opacity: 0, y: 8 }, 0)
+      .set(q('.t-char'), { opacity: 0, y: 10 }, 0)
+      .set(q('.s-char'), { opacity: 0 }, 0)
+      .set(q('.underline'), { opacity: 1, scaleX: 0, transformOrigin: '50% 50%' }, 0)
+      .set(q('.title-caret'), { opacity: 0 }, 0)
+      .set(q('.sub-caret'), { opacity: 0 }, 0)
+      .set(q('.cta'), { opacity: 0, y: 12 }, 0);
+
+    // ---- SCENE A: grid draws in as a faint map, and stays ----
+    tl.to(q('.grid'), { opacity: 0.8, duration: 0.7, ease: 'power1.out' }, 0.1)
+      .to(q('.grid-line'), { strokeDashoffset: 0, duration: 1.7, stagger: 0.02, ease: 'power1.out' }, 0.1);
+
+    // ---- SCENE B: subway cars ride in on the tracks and build the ring by docking ----
+    const conv = 2.0, stagger = 0.16, travel = 1.75;
+    tl.to(routeEls, { strokeDashoffset: 0, duration: 1.7, stagger: 0.1, ease: 'power2.inOut' }, conv);
+    routes.forEach((r, i) => {
+      const depart = conv + i * stagger, dock = depart + travel;
+      tl.to(trains[i], { opacity: 1, duration: 0.3 }, depart);
+      // autoRotate keeps the car's front pointing along its curved route
+      tl.to(trains[i], { motionPath: { path: routeEls[i], align: routeEls[i], alignOrigin: [0.5, 0.5], autoRotate: true }, duration: travel, ease: 'power2.out' }, depart);
+      // dock: ping pulse, the car BECOMES the station node seated on the ring
+      tl.set(pings[i], { opacity: 0.9, attr: { r: 5 } }, dock)
+        .to(pings[i], { attr: { r: 24 }, opacity: 0, duration: 0.6, ease: 'power2.out' }, dock)
+        .fromTo(nodes[i], { opacity: 0, attr: { r: 0 } }, { opacity: 1, attr: { r: 4.6 }, duration: 0.5, ease: 'back.out(2)' }, dock)
+        .to(trains[i], { opacity: 0, scale: 0.4, duration: 0.35, ease: 'power2.in' }, dock + 0.05);
+    });
+    const firstDock = conv + travel;
+    const lastDock = conv + (routes.length - 1) * stagger + travel;
+    // ring stroke draws progressively across the docking window (born from the connecting cars)
+    tl.to(q('#ring'), { strokeDashoffset: 0, duration: (lastDock - firstDock) + 0.3, ease: 'none' }, firstDock);
+    const formEnd = lastDock + 0.5;
+
+    // ---- SCENE C: nodes pulse + orbit clockwise (ring + nodes share the transform group) ----
+    tl.to(q('#ringGroup'), { scale: 1.05, duration: 0.35, ease: 'power2.out' }, formEnd - 0.1)
+      .to(q('#ringGroup'), { scale: 1.0, duration: 0.45, ease: 'power2.inOut' }, formEnd + 0.25)
+      .to(q('#nodesGroup'), { rotation: '+=540', duration: 4.6, ease: 'none' }, formEnd);
+
+    // ---- SCENE D: bloom -> flurry ----
+    const bloom = formEnd + 0.9;
+    tl.to(q('#ringGroup'), { scale: 1.13, duration: 0.5, ease: 'power2.out' }, bloom)
+      .to(q('#ringGroup'), { scale: 1.0, duration: 0.6, ease: 'power2.inOut' }, bloom + 0.5)
+      .to(q('.route'), { opacity: 0, duration: 0.9, ease: 'power2.in' }, bloom)
+      .to(q('.grid'), { opacity: 0.3, duration: 1.0, ease: 'power2.inOut' }, bloom)
+      .to(q('.flurry'), { opacity: 1, duration: 1.4, ease: 'power1.out' }, bloom);
+    const title = bloom + 1.3;
+
+    // ---- SCENE E: ring unspools into underline, title types ----
+    tl.to(q('#ring'), { opacity: 0, duration: 0.9, ease: 'power2.in' }, title)
+      .to(q('#nodesGroup'), { opacity: 0, duration: 0.6, ease: 'power2.in' }, title)
+      .to(q('.underline'), { scaleX: 1, duration: 0.9, ease: REVEAL }, title + 0.1)
+      .to(q('.title-caret'), { opacity: 1, duration: 0.1 }, title + 0.4)
+      .to(q('.t-char'), { opacity: 1, y: 0, duration: 0.3, stagger: 0.085, ease: 'power2.out' }, title + 0.5);
+    const titleEnd = title + 0.5 + 13 * 0.085 + 0.3;
+
+    // ---- SCENE F: subtitle types (quieter) ----
+    const subN = this.subChars.length;
+    tl.to(q('.title-caret'), { opacity: 0, duration: 0.2 }, titleEnd + 0.1)
+      .to(q('.sub-caret'), { opacity: 1, duration: 0.1 }, titleEnd + 0.15)
+      .to(q('.s-char'), { opacity: 1, duration: 0.2, stagger: 0.042, ease: 'power1.out' }, titleEnd + 0.2);
+    const subEnd = titleEnd + 0.2 + (subN - 1) * 0.042 + 0.2;
+    tl.to(q('.sub-caret'), { opacity: 0, duration: 0.25 }, subEnd + 0.25);
+
+    // ---- SCENE G: lockup glides up, paragraph populates WORD-BY-WORD below ----
+    const glideT = subEnd + 0.5;
+    tl.to(q('.lockup'), { y: -GLIDE, scale: 0.8, duration: 1.0, ease: 'power3.out' }, glideT)
+      .to(q('.flurry'), { y: -GLIDE, duration: 1.0, ease: 'power3.out' }, glideT)
+      .to(q('.grid'), { opacity: 0.85, duration: 1.0, ease: 'power2.out' }, glideT)
+      .to(pwords, { opacity: 1, y: 0, duration: 0.3, stagger: 0.035, ease: 'power2.out' }, glideT + 0.3);
+    const pEnd = glideT + 0.3 + (pwords.length - 1) * 0.035 + 0.3;
+
+    // ambient: a faint "33,000,000" resolves behind the paragraph, then fades
+    const bnWrap = q('.bignum'), bn = q('.bignum-val')[0];
+    const counter = { v: 0 };
+    tl.to(bnWrap, { opacity: 1, duration: 0.7, ease: 'power1.out' }, glideT + 0.5)
+      .to(counter, { v: 33000000, duration: 1.9, ease: 'power2.out', onUpdate: () => { if (bn) bn.textContent = Math.round(counter.v).toLocaleString('en-US'); } }, glideT + 0.5)
+      .to(bnWrap, { opacity: 0, duration: 1.1, ease: 'power1.in' }, glideT + 2.7);
+
+    // ---- SCENE H: the button appears last and keeps its gentle breathing glow ----
+    tl.to(q('.cta'), { opacity: 1, y: 0, duration: 0.8, ease: REVEAL }, pEnd + 0.4);
+
+    this.tl = tl;
+    tl.timeScale(this.props.sequenceSpeed || 1);
+  }
+
+  replay() {
+    if (this.reduced || !this.tl) return;
+    this.tl.timeScale(this.props.sequenceSpeed || 1);
+    this.tl.restart();
+  }
+
+  showStatic() {
+    const { gsap, q } = this;
+    const GLIDE = this.glide;
+    gsap.set(q('.field'), { opacity: 1 });
+    gsap.set(q('.grid'), { opacity: 0.8 });
+    gsap.set(q('.grid-line'), { strokeDashoffset: 0 });
+    gsap.set(q('.route'), { opacity: 0 });
+    gsap.set(q('.train'), { opacity: 0 });
+    gsap.set(q('.ping'), { opacity: 0 });
+    gsap.set(q('#ringGroup'), { opacity: 1 });
+    gsap.set(q('#ring'), { strokeDashoffset: 0, opacity: 0.4 });
+    gsap.set(q('.node'), { opacity: 0 });
+    gsap.set(q('#nodesGroup'), { opacity: 0 });
+    gsap.set(q('.flurry'), { opacity: 1, y: -GLIDE });
+    gsap.set(q('.bignum'), { opacity: 0 });
+    gsap.set(q('.lockup'), { y: -GLIDE, scale: 0.8, transformOrigin: '50% 50%' });
+    gsap.set(q('.underline'), { opacity: 1, scaleX: 1 });
+    gsap.set(q('.t-char'), { opacity: 1, y: 0 });
+    gsap.set(q('.s-char'), { opacity: 1 });
+    gsap.set(q('.title-caret'), { opacity: 0 });
+    gsap.set(q('.sub-caret'), { opacity: 0 });
+    gsap.set(q('.p-word'), { opacity: 0.92, y: 0 });
+    gsap.set(q('.paragraph'), { opacity: 1 });
+    gsap.set(q('.cta'), { opacity: 1, y: 0 });
+    // FIX4 atmosphere held static under reduced motion
+    q('.datanum').forEach(n => { n.style.animation = 'none'; n.style.opacity = '0.18'; });
+    q('.scan').forEach(s => { s.style.animation = 'none'; s.style.opacity = '0'; });
+    q('.grain').forEach(g => { g.style.animation = 'none'; });
+    q('.cta').forEach(b => b.style.animation = 'none');
+    q('.train-light').forEach(l => l.style.animation = 'none');
+    q('.caret-bar').forEach(c => c.style.animation = 'none');
+    q('.flurry-blob').forEach(b => b.style.animation = 'none');
+  }
+}
+</script>
+</body>
+</html>

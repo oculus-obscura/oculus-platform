@@ -1,19 +1,18 @@
-/**
- * Placeholder shell. No features yet — this only proves the design tokens and
- * fonts load. Real screens (dashboard, game) come later. Keep this shell quiet
- * and teal-monochrome per DESIGN.md; no data-encoding colors outside charts.
- */
+import { useState } from "react";
+import IntroSequence from "./parts/Intro/IntroSequence";
 import "./App.css";
 
 export default function App() {
+  const [entered, setEntered] = useState(false);
+
+  if (!entered) {
+    return <IntroSequence onEnter={() => setEntered(true)} />;
+  }
+
+  // Temporary stub for the next part — replaced once the dashboard/game land.
   return (
-    <main className="app-scaffold">
-      <p className="app-scaffold__eyebrow">Scaffold</p>
-      <h1 className="display">Oculus Obscura</h1>
-      <p className="app-scaffold__note prose">
-        Vite + React + TypeScript is running. Design tokens, fonts, and CSS
-        structure are wired up — no screens built yet.
-      </p>
+    <main className="post-intro">
+      <p className="post-intro__note">Part 2 — coming soon</p>
     </main>
   );
 }

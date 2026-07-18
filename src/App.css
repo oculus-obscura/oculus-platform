@@ -1,23 +1,26 @@
-/* Styles local to the placeholder scaffold. Delete when real screens land. */
-.app-scaffold {
+/* Post-intro stub. Space Black ground, quiet muted text, simple fade-in. */
+.post-intro {
   min-height: 100dvh;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--space-4);
   padding: var(--space-6);
+  background: var(--color-bg);
   text-align: center;
+  animation: post-intro-fade var(--dur-slow) var(--ease-out);
 }
 
-.app-scaffold__eyebrow {
-  font-family: var(--font-body);
-  font-size: var(--fs-caption);
-  letter-spacing: 0.24em;
-  text-transform: uppercase;
-  color: var(--color-accent);
-}
-
-.app-scaffold__note {
+.post-intro__note {
   color: var(--color-text-muted);
+  font-size: var(--fs-body-lg);
+  letter-spacing: 0.04em;
+}
+
+@keyframes post-intro-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
