@@ -68,6 +68,16 @@
 .stage * {
   box-sizing: border-box;
 }
+
+/* Exit transition (Part 1A): the stage lifts to a fixed overlay above the
+   mounting turntable view; JS then dissolves its background so the black
+   field + video fade up underneath while the title flies. */
+.stage--exiting {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+}
 .stage a {
   color: #1a8787;
   text-decoration: none;

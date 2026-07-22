@@ -12,9 +12,21 @@
  *     ctx.revert() so React 18 StrictMode double-mount can't duplicate or leak timelines.
  *   - MotionPathPlugin registered once at module scope.
  *   - Claude-Design props (sequenceSpeed / loop / showReplay) and the on-canvas Replay
- *     button are removed. Plays once on mount. Single prop: onEnter.
+ *     button are removed. Plays once on mount.
+ *
+ * Additions for Part 1A (the intro animation itself is untouched):
+ *   - animate prop: false builds the normal timeline and seeks it to the end,
+ *     paused (progress(1)) — the page rests on the timeline's TRUE final frame,
+ *     not an approximation, with the ambient CSS loops still breathing.
+ *     (prefers-reduced-motion still uses showStatic(), which also freezes the
+ *     CSS loops; its values are corrected to match the timeline end state.)
+ *   - Exit choreography on "Enter the Ledger": everything except the title falls
+ *     away, then the REAL h1 flies (FLIP: measured rects + transforms) to the
+ *     persistent TitleMark's position while its letter-spacing tightens
+ *     0.14em → 0.06em. The parent mounts TurntableView underneath at onEnter and
+ *     swaps in the real mark at onExited — the swap is metric-exact, so invisible.
  */
-import { useEffect, useRef } from "react";
+import { useLayoutEffect, useRef } from "react";
 import gsap from "gsap";
 import { MotionPathPlugin } from "gsap/MotionPathPlugin";
 import "./introSequence.css";
@@ -165,14 +177,33 @@ function TrainCar() {
 }
 
 interface IntroSequenceProps {
-  /** Fired when the user clicks "Enter the Ledger". */
+  /**
+   * true (default): full GSAP timeline. false: skip it and render the final
+   * resting state instantly (same showStatic() path as reduced motion) — used
+   * when returning to the title page so nothing replays. Read once at mount.
+   */
+  animate?: boolean;
+  /**
+   * Fired when the user clicks "Enter the Ledger" — the parent mounts the
+   * turntable view underneath (with a ghost TitleMark) while the exit runs.
+   */
   onEnter: () => void;
+  /** Fired when the title flight lands — the parent unmounts the intro. */
+  onExited?: () => void;
 }
 
-export default function IntroSequence({ onEnter }: IntroSequenceProps) {
+export default function IntroSequence({ animate = true, onEnter, onExited }: IntroSequenceProps) {
   const rootRef = useRef<HTMLDivElement>(null);
+  // frozen at mount: the parent flips hasSeenIntro mid-exit, which must not
+  // re-trigger anything here
+  const animateRef = useRef(animate);
+  const exitingRef = useRef(false);
+  const exitTlRef = useRef<gsap.core.Timeline | null>(null);
+  const flightTlRef = useRef<gsap.core.Timeline | null>(null);
 
-  useEffect(() => {
+  // layout effect: the animate={false} end-state render must land before first
+  // paint — a plain effect could let one frame of the empty stage flash through
+  useLayoutEffect(() => {
     const root = rootRef.current;
     if (!root) return;
 
@@ -192,31 +223,67 @@ export default function IntroSequence({ onEnter }: IntroSequenceProps) {
       const glide = Math.round((window.innerHeight || 800) * 0.26);
       const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       if (reduced) {
+        // static frame AND frozen CSS ambience
         showStatic(q, glide);
         return;
       }
-      buildTL(q, glide);
+      const tl = buildTL(q, glide);
+      if (!animateRef.current) {
+        // returning to the title page: rest on the timeline's real final frame,
+        // instantly and without playback. CSS ambient loops (flurry, CTA pulse,
+        // grain, scan, data numbers) keep running — only the sequence is skipped.
+        tl.progress(1).pause();
+      }
     }, root);
 
-    return () => ctx.revert();
+    return () => {
+      ctx.revert();
+      exitTlRef.current?.kill();
+      flightTlRef.current?.kill();
+    };
   }, []);
 
   const handleEnter = () => {
+    if (exitingRef.current) return;
+    exitingRef.current = true;
+
     const root = rootRef.current;
-    if (!root) {
-      onEnter();
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    onEnter(); // parent mounts the turntable underneath before paint
+
+    if (!root || reduced) {
+      // reduced motion: no flight — the title appears directly top-left
+      onExited?.();
       return;
     }
-    // fade the stage out, then hand control to the parent
-    gsap.to(root, { opacity: 0, duration: 0.5, ease: "power2.out", onComplete: onEnter });
+
+    // The stage becomes a fixed overlay above the turntable; its ground
+    // dissolves so the black field + video fade up underneath (no dead beat).
+    root.classList.add("stage--exiting");
+    const q = gsap.utils.selector(root) as unknown as (s: string) => any[];
+    const master = gsap.timeline();
+    exitTlRef.current = master;
+
+    // (a) everything EXCEPT the title falls away first, short stagger —
+    // fade + slight downward drift; the title is the last thing standing
+    const drifting = [q(".cta"), q(".paragraph"), q(".subtitle"), q(".underline")];
+    drifting.forEach((els, i) => {
+      master.to(els, { opacity: 0, y: "+=14", duration: 0.3, ease: "power2.in" }, i * 0.05);
+    });
+    const ambient = [q(".flurry"), q(".field"), q(".datalayer"), q(".scan"), q(".bignum"), q(".vignette"), q(".grain")];
+    ambient.forEach((els, i) => {
+      master.to(els, { opacity: 0, duration: 0.32, ease: "power2.in" }, 0.12 + i * 0.03);
+    });
+    master.to(root, { backgroundColor: "rgba(10,10,10,0)", duration: 0.55, ease: "power2.inOut" }, 0.18);
+
+    // (b/c) the title's FLIP flight, overlapping the tail of the fall-away
+    master.add(() => startFlight(root, q, flightTlRef, onExited), 0.32);
   };
 
   return (
-    <div
-      className="stage"
-      ref={rootRef}
-      style={{ position: "relative", width: "100vw", height: "100vh", overflow: "hidden", background: "#0A0A0A", fontFamily: "'Space Grotesk', system-ui, sans-serif" }}
-    >
+    /* all root styling lives on .stage in introSequence.css (identical values);
+       inline duplicates removed so .stage--exiting can lift it to a fixed overlay */
+    <div className="stage" ref={rootRef}>
       {/* floating data numbers */}
       <div className="datalayer">
         {DATANUMS.map((d, i) => (
@@ -347,10 +414,81 @@ export default function IntroSequence({ onEnter }: IntroSequenceProps) {
 }
 
 /* ---------------------------------------------------------------------------
+ * The title flight — FLIP by hand (Part 1A §3).
+ *
+ * The REAL hero h1 travels to the persistent TitleMark: measure both rects,
+ * re-anchor the element to the viewport at exactly its current visual rect,
+ * then animate transforms to the target. gsap's Flip plugin is skipped
+ * deliberately: it precomputes its transform from static rects, but we tighten
+ * letter-spacing 0.14em → 0.06em IN FLIGHT (spec c), which changes the
+ * element's intrinsic width mid-tween and would make a rect-based scale land
+ * off-target / pop at start. Anchoring top-left and animating x/y/scale +
+ * letter-spacing together lands metric-exact by construction:
+ *   final glyphs = fontSize·scale = mark fontSize, tracking 0.06em, at the
+ *   mark text's top-left — identical to the real TitleMark, so the swap
+ *   (hide flight / show mark, same commit) is invisible.
+ * ------------------------------------------------------------------------- */
+function startFlight(
+  root: HTMLDivElement,
+  q: (s: string) => any[],
+  flightTlRef: { current: gsap.core.Timeline | null },
+  onExited?: () => void,
+) {
+  const title = q(".title")[0] as HTMLElement | undefined;
+  const target = document.querySelector<HTMLElement>(".title-mark__text");
+  if (!title || !target) {
+    onExited?.();
+    return;
+  }
+
+  const heroRect = title.getBoundingClientRect();
+  const targetRect = target.getBoundingClientRect();
+  const targetFont = parseFloat(getComputedStyle(target).fontSize);
+  // visual font-size = layout font-size × resting ancestor scale (.lockup ends
+  // at scale 0.8); the rect/offsetHeight ratio recovers it robustly
+  const visualFont =
+    parseFloat(getComputedStyle(title).fontSize) * (heroRect.height / title.offsetHeight);
+
+  // Re-anchor: same DOM element, reparented out of the transformed .lockup so
+  // position:fixed is viewport-true, frozen at its exact current visual rect.
+  root.appendChild(title);
+  gsap.set(title, {
+    position: "fixed",
+    left: heroRect.left,
+    top: heroRect.top,
+    margin: 0,
+    zIndex: 30,
+    fontSize: visualFont,
+    lineHeight: 1.08,
+    letterSpacing: "0.14em",
+    whiteSpace: "nowrap",
+    textAlign: "left",
+    transformOrigin: "0 0",
+  });
+
+  flightTlRef.current = gsap
+    .timeline({ onComplete: () => onExited?.() })
+    .to(
+      title,
+      {
+        x: targetRect.left - heroRect.left,
+        y: targetRect.top - heroRect.top,
+        scale: targetFont / visualFont,
+        letterSpacing: "0.06em", // Michroma: airy at hero scale, tight when small
+        duration: 0.82,
+        ease: "expo.inOut",
+      },
+      0,
+    )
+    // the hero glow reads as haze at mark size — breathe it out en route
+    .to(title, { textShadow: "0 0 0px rgba(26,135,135,0)", duration: 0.6, ease: "power2.out" }, 0.06);
+}
+
+/* ---------------------------------------------------------------------------
  * GSAP timeline — ported EXACTLY from the source buildTL(). Same scene order,
  * durations, staggers, eases and positions. (sequenceSpeed/loop removed: plays once.)
  * ------------------------------------------------------------------------- */
-function buildTL(q: (s: string) => any[], glide: number) {
+function buildTL(q: (s: string) => any[], glide: number): gsap.core.Timeline {
   const REVEAL = "expo.out";
   const GLIDE = glide;
   const ringLen = (q("#ring")[0] as any)._len;
@@ -460,21 +598,27 @@ function buildTL(q: (s: string) => any[], glide: number) {
 
   // ---- SCENE H: the button appears last and keeps its gentle breathing glow ----
   tl.to(q(".cta"), { opacity: 1, y: 0, duration: 0.8, ease: REVEAL }, pEnd + 0.4);
+
+  return tl; // so animate={false} can rest on the true final frame (progress(1))
 }
 
 /* ---------------------------------------------------------------------------
- * Reduced-motion static frame — reproduced exactly from the source showStatic().
+ * Reduced-motion static frame — from the source showStatic(), with three values
+ * corrected to match the TIMELINE's actual end state (the source approximation
+ * drifted): #ring rests at opacity 0 (Scene E unspools it into the underline),
+ * grid at 0.85 (Scene G), .p-word at 1. Reduced-motion users see the same
+ * resting frame as everyone else.
  * ------------------------------------------------------------------------- */
 function showStatic(q: (s: string) => any[], glide: number) {
   const GLIDE = glide;
   gsap.set(q(".field"), { opacity: 1 });
-  gsap.set(q(".grid"), { opacity: 0.8 });
+  gsap.set(q(".grid"), { opacity: 0.85 });
   gsap.set(q(".grid-line"), { strokeDashoffset: 0 });
   gsap.set(q(".route"), { opacity: 0 });
   gsap.set(q(".train"), { opacity: 0 });
   gsap.set(q(".ping"), { opacity: 0 });
   gsap.set(q("#ringGroup"), { opacity: 1 });
-  gsap.set(q("#ring"), { strokeDashoffset: 0, opacity: 0.4 });
+  gsap.set(q("#ring"), { strokeDashoffset: 0, opacity: 0 });
   gsap.set(q(".node"), { opacity: 0 });
   gsap.set(q("#nodesGroup"), { opacity: 0 });
   gsap.set(q(".flurry"), { opacity: 1, y: -GLIDE });
@@ -485,7 +629,7 @@ function showStatic(q: (s: string) => any[], glide: number) {
   gsap.set(q(".s-char"), { opacity: 1 });
   gsap.set(q(".title-caret"), { opacity: 0 });
   gsap.set(q(".sub-caret"), { opacity: 0 });
-  gsap.set(q(".p-word"), { opacity: 0.92, y: 0 });
+  gsap.set(q(".p-word"), { opacity: 1, y: 0 });
   gsap.set(q(".paragraph"), { opacity: 1 });
   gsap.set(q(".cta"), { opacity: 1, y: 0 });
   // atmosphere held static under reduced motion

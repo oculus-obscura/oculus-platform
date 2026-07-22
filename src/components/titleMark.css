@@ -1,0 +1,41 @@
+/**
+ * TitleMark — persistent top-left wordmark. Shell chrome: teal-monochrome
+ * on near-black, semantic tokens only (DESIGN.md).
+ */
+
+.title-mark {
+  /* positioned by its container (PlatformChrome's bar) — not self-fixed,
+     so the bar can align the nav to the same optical level */
+  /* generous padding doubles as the ≥44px tap target (RESPONSIVE.md) */
+  padding: var(--space-5) var(--space-6);
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.title-mark__text {
+  display: inline-block;
+  font-family: var(--font-display);
+  font-weight: 400; /* Michroma ships at 400 only */
+  font-size: var(--fs-caption);
+  letter-spacing: 0.06em; /* tightened vs the hero's 0.14em — Michroma small */
+  line-height: 1.08; /* matches the hero title so the FLIP handoff is exact */
+  white-space: nowrap;
+  color: var(--color-text);
+  transition:
+    filter var(--dur-fast) var(--ease-out),
+    text-shadow var(--dur-fast) var(--ease-out);
+}
+
+.title-mark:hover .title-mark__text,
+.title-mark:focus-visible .title-mark__text {
+  filter: brightness(1.12);
+  text-shadow: 0 0 14px rgba(26, 135, 135, 0.55); /* subtle teal lift, not neon */
+}
+
+.title-mark:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}

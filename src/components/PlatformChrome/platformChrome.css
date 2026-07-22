@@ -1,0 +1,136 @@
+/**
+ * PlatformChrome — shared top bar. Shell world: teal monochrome on black,
+ * semantic tokens only (DESIGN.md). No solid bar background — the pages
+ * beneath are near-black, so the chrome floats; z-index above video/data
+ * layers but below the intro's exit overlay (z20) so the bar fades up
+ * underneath the dissolving stage during the enter transition.
+ */
+
+.platform-chrome__bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center; /* title + nav on the same optical level */
+  justify-content: space-between;
+  gap: var(--space-4);
+  pointer-events: none; /* transparent areas must not eat clicks */
+  animation: pc-fade var(--dur-slower) var(--ease-out);
+}
+.platform-chrome__bar > * {
+  pointer-events: auto;
+}
+
+@keyframes pc-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ---- nav ---- */
+.pc-nav {
+  /* matches the TitleMark's inline padding so both sit equally off the edges */
+  padding-right: var(--space-6);
+  min-width: 0; /* allow the list to shrink/scroll instead of overflowing */
+}
+
+.pc-nav__list {
+  position: relative; /* the sliding indicator positions against this */
+  display: flex;
+  align-items: center;
+  gap: clamp(2px, 1.6vw, 24px);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pc-nav__item {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px; /* tap target (RESPONSIVE.md) */
+  padding: 0 clamp(6px, 0.8vw, 12px);
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: clamp(0.8rem, 0.74rem + 0.25vw, 0.9rem);
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  color: var(--color-text-muted);
+  transition:
+    color var(--dur-base) var(--ease-out),
+    text-shadow var(--dur-base) var(--ease-out);
+}
+
+.pc-nav__item:hover:not(:disabled),
+.pc-nav__item:focus-visible:not(:disabled) {
+  color: var(--color-text);
+  text-shadow: 0 0 12px color-mix(in srgb, var(--color-accent) 50%, transparent);
+}
+
+.pc-nav__item[data-active="true"] {
+  color: var(--color-text);
+  cursor: default;
+}
+
+/* not-yet-built: reads as "coming", not broken. Deliberately lighter than
+   DESIGN.md's faint+0.4 locked pattern — compounding both dropped these below
+   accessible contrast. Muted pearl stays readable; the disabled state is
+   carried by cursor, aria-disabled, no hover glow, and no underline, while
+   pearl-vs-muted + the teal indicator mark the active item. */
+.pc-nav__item:disabled {
+  color: var(--color-text-muted);
+  opacity: 1;
+  cursor: not-allowed;
+  text-shadow: none;
+}
+
+/* the active underline — slides between items, never pops */
+.pc-nav__indicator {
+  position: absolute;
+  bottom: 2px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--color-accent);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--color-accent) 55%, transparent);
+  transition:
+    left var(--dur-slow) var(--ease-out),
+    width var(--dur-slow) var(--ease-out);
+}
+
+/* ============================================================
+   NARROW: the fluid clamps above tighten first; once title + 4
+   items can't share a row, the nav drops to its own row beneath
+   the TitleMark, left-aligned, horizontally scrollable — never
+   a broken wrap. (--bp-md, structural change only)
+   ============================================================ */
+@media (max-width: 767px) {
+  .platform-chrome__bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+  }
+
+  /* tighten the title row so the nav row tucks under it */
+  .platform-chrome__bar .title-mark {
+    padding-bottom: var(--space-2);
+    align-self: flex-start;
+  }
+
+  .pc-nav {
+    padding: 0 var(--space-6) var(--space-2);
+  }
+
+  .pc-nav__list {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 4px; /* keep the indicator inside the scroll box */
+  }
+  .pc-nav__list::-webkit-scrollbar {
+    display: none;
+  }
+}

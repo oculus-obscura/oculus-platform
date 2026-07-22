@@ -1,0 +1,338 @@
+/**
+ * Part 1A — turntable view styles.
+ *
+ * GROUND RULE: this section is PURE BLACK (#000000), NOT --color-bg (#0A0A0A).
+ * The turntable video holds pure black to its edges; matching it exactly makes
+ * the video boundary invisible so the viewport reads as one continuous black
+ * field with the Oculus floating in it. Any mismatch shows a seam. This is the
+ * single intentional exception to using --color-bg.
+ *
+ * Everything else pulls from tokens (DESIGN.md). Data colors appear here
+ * because this IS a visualization surface: teal = measured, amber = edge/proxy,
+ * plum = missing. The structure rotates, so no element is anchored to it —
+ * content lives in the side margins (wide) or below the video (narrow).
+ */
+
+.turntable {
+  position: relative;
+  min-height: 100dvh;
+  background: #000000;
+  animation: turntable-fade var(--dur-slower) var(--ease-out);
+}
+
+@keyframes turntable-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ---- video stage ---- */
+.turntable__stage {
+  position: relative;
+  height: 100dvh; /* wide: full-viewport black field */
+}
+
+.turntable__video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain; /* the Oculus floats centered; margins stay open */
+  background: #000000;
+}
+
+/* Replay — quiet, bottom-right; mirrors the intro's replay affordance. */
+.turntable__replay {
+  position: absolute;
+  right: clamp(16px, 2vw, 28px);
+  bottom: clamp(14px, 2.5vh, 24px);
+  z-index: 3;
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+  background: color-mix(in srgb, var(--color-bg) 40%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-text-muted) 22%, transparent);
+  border-radius: 9px;
+  padding: 8px 14px;
+  cursor: pointer;
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  transition:
+    color var(--dur-slow) var(--ease-out),
+    border-color var(--dur-slow) var(--ease-out);
+}
+.turntable__replay:hover,
+.turntable__replay:focus-visible {
+  color: var(--color-accent-hover);
+  border-color: color-mix(in srgb, var(--color-accent) 55%, transparent);
+}
+/* invisible hit-area extension → ≥44px tap target without visual bulk */
+.turntable__replay::after {
+  content: "";
+  position: absolute;
+  inset: -8px;
+}
+
+/* ---- data layer (wide: overlay grid in the margins) ---- */
+.turntable__data {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  /* column caps keep content clear of the structure (it spans ~17%–80% of
+     the frame at 16:9); tuned against the poster, do not widen casually */
+  grid-template-columns:
+    minmax(0, clamp(175px, 13vw, 280px))
+    1fr
+    minmax(0, clamp(175px, 13vw, 280px));
+  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "measured . withheld"
+    "pivot pivot pivot";
+  padding: clamp(72px, 10vh, 110px) clamp(20px, 3vw, 48px) clamp(18px, 3.5vh, 40px);
+  pointer-events: none; /* pure display; replay button stays clickable below */
+}
+
+.tt-col {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(18px, 3.2vh, 32px);
+  padding-left: clamp(14px, 1.2vw, 22px);
+  min-width: 0;
+}
+.tt-col--measured {
+  grid-area: measured;
+  align-self: center;
+}
+.tt-col--withheld {
+  grid-area: withheld;
+  align-self: center;
+}
+
+/* vertical hairline beside each column */
+.tt-rule {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+}
+.tt-rule--measured {
+  background: linear-gradient(180deg, var(--data-measured), transparent 94%);
+}
+.tt-rule--withheld {
+  background: linear-gradient(180deg, var(--data-missing), transparent 94%);
+}
+
+/* column headers — small tracked caps in the channel color */
+.tt-header {
+  font-family: var(--font-body);
+  font-size: var(--fs-caption);
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  line-height: 1;
+}
+.tt-col--measured .tt-header {
+  color: var(--data-measured);
+}
+.tt-col--withheld .tt-header {
+  color: var(--data-missing);
+}
+
+/* ---- rows ---- */
+.tt-row {
+  position: relative;
+  min-width: 0;
+}
+
+/* ambient hairline pointing inward from a measured row; stops well short
+   of the structure and never tracks it */
+.tt-row__line {
+  position: absolute;
+  left: calc(100% + 12px);
+  top: 0.9em;
+  width: clamp(24px, 3.5vw, 56px);
+  height: 1px;
+  background: linear-gradient(90deg, var(--data-measured-2), transparent);
+}
+
+.tt-value {
+  font-size: var(--fs-h3);
+  font-weight: 500;
+  line-height: 1.15;
+  color: var(--data-measured);
+}
+.tt-value__sep {
+  color: var(--data-measured-2);
+}
+
+/* amber proxy row — adjacent-station data must never read as solid measured
+   (DESIGN.md: interpolated/proxied = dashed treatment + note) */
+.tt-row--edge .tt-value {
+  color: var(--data-edge);
+  display: inline-block;
+  padding-bottom: 3px;
+  border-bottom: 1px dashed var(--data-edge-2);
+}
+.tt-note {
+  margin-top: var(--space-1);
+  font-size: var(--fs-caption);
+  letter-spacing: 0.04em;
+  color: var(--data-edge);
+  opacity: 0.75;
+}
+
+.tt-label {
+  margin-top: var(--space-1);
+  font-size: var(--fs-caption);
+  line-height: 1.45;
+  letter-spacing: 0.02em;
+  color: var(--color-text-muted);
+  max-width: 26ch;
+}
+.tt-src {
+  margin-top: 2px;
+  font-size: var(--fs-caption);
+  letter-spacing: 0.04em;
+  color: var(--color-text-faint);
+}
+
+/* withheld labels: plum-leaning pearl — keeps the channel color while
+   clearing the contrast floor (pure dim plum fails at caption size) */
+.tt-col--withheld .tt-label {
+  color: color-mix(in srgb, var(--data-missing) 38%, var(--color-text));
+  max-width: 24ch;
+}
+
+/* ---- withheld value area: scramble → redaction ---- */
+.tt-wvalue {
+  position: relative;
+  margin-top: var(--space-2);
+  min-height: 30px;
+}
+.tt-scramble {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: var(--fs-h3);
+  font-weight: 500;
+  line-height: 1.15;
+  color: var(--data-missing);
+  opacity: 0; /* only visible mid-animation */
+  white-space: nowrap;
+}
+.tt-redaction {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: var(--space-1) var(--space-3);
+}
+.tt-redaction__bar {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--data-missing) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--data-missing) 45%, transparent);
+  border-radius: 2px;
+}
+.tt-redaction__text {
+  position: relative;
+  font-size: var(--fs-caption);
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--data-missing);
+}
+
+/* ---- bottom pivot statement ---- */
+.tt-pivot {
+  grid-area: pivot;
+  justify-self: center;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: 0 var(--space-4);
+  max-width: 60ch;
+}
+.tt-pivot__line {
+  font-size: var(--fs-body-lg);
+  letter-spacing: var(--ls-body);
+  line-height: 1.5;
+}
+.tt-pivot__line--1 {
+  color: var(--color-text);
+}
+.tt-pivot__num {
+  color: var(--data-measured);
+  font-weight: 500;
+}
+.tt-pivot__src {
+  display: inline-block;
+  margin-left: var(--space-2);
+}
+.tt-pivot__line--2 {
+  color: var(--data-missing);
+}
+
+/* ============================================================
+   NARROW (< --bp-xl): side margins would crowd the Oculus.
+   Reflow to a single stacked column BELOW the video; page scrolls.
+   The video wrapper switches to aspect-ratio — never fixed pixels.
+   ============================================================ */
+@media (max-width: 1279px) {
+  /* clear the fixed chrome bar so it never sits over the structure.
+     PADDING on the section, not margin on the stage — a stage margin would
+     collapse through the section edge and let the body's #0A0A0A show as a
+     band above the pure-black field */
+  .turntable {
+    padding-top: clamp(64px, 9vh, 84px);
+  }
+
+  .turntable__stage {
+    height: auto;
+    aspect-ratio: 16 / 9;
+  }
+
+  /* the stage is short here — an overlaid replay button would sit on the
+     structure, so it drops just below the video instead */
+  .turntable__replay {
+    top: calc(100% + var(--space-3));
+    bottom: auto;
+    right: var(--space-5);
+  }
+
+  .turntable__data {
+    position: static;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-7);
+    /* extra top room clears the below-video replay button */
+    padding: var(--space-8) var(--space-5) var(--space-8);
+    max-width: 620px;
+    margin-inline: auto;
+  }
+
+  .tt-col {
+    align-self: stretch;
+  }
+
+  .tt-row__line {
+    display: none; /* inward pointers only make sense beside the model */
+  }
+
+  .tt-pivot {
+    align-self: center;
+  }
+}
+
+/* below --bp-md the chrome stacks to two rows (title + nav) — give the
+   stage the extra clearance so the nav never sits over the structure */
+@media (max-width: 767px) {
+  .turntable {
+    padding-top: clamp(118px, 17vh, 140px);
+  }
+}
