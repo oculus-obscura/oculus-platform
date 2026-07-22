@@ -1,28 +1,80 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import Lenis from "lenis";
 import IntroSequence from "./parts/Intro/IntroSequence";
 import PlatformChrome, { type PlatformView } from "./components/PlatformChrome/PlatformChrome";
 import TurntableView, {
   TURNTABLE_POSTER_SRC,
   TURNTABLE_VIDEO_SRC,
 } from "./parts/Turntable/TurntableView";
+import DashboardScroll from "./parts/Dashboard/DashboardScroll";
+import { STATIONS } from "./parts/Dashboard/stationData";
+
+gsap.registerPlugin(ScrollTrigger);
 
 /** The full intro animation plays once per tab session. */
 const SEEN_KEY = "oculus:hasSeenIntro";
+/** The overview sequence (turntable + ledger write-in) locks scroll once per session. */
+const SEQ_KEY = "oculus:hasSeenOverviewSequence";
 
-function readHasSeenIntro(): boolean {
+function readSessionFlag(key: string): boolean {
   try {
-    return sessionStorage.getItem(SEEN_KEY) === "1";
+    return sessionStorage.getItem(key) === "1";
   } catch {
     return false; // storage unavailable (private mode) — just replay
   }
 }
 
+function writeSessionFlag(key: string) {
+  try {
+    sessionStorage.setItem(key, "1");
+  } catch {
+    /* private mode — flag just won't persist */
+  }
+}
+
 export default function App() {
   const [view, setView] = useState<PlatformView>("intro");
-  const [hasSeenIntro, setHasSeenIntro] = useState(readHasSeenIntro);
+  const [hasSeenIntro, setHasSeenIntro] = useState(() => readSessionFlag(SEEN_KEY));
+  // first Overview arrival locks scroll while the sequence plays; afterwards
+  // the overview always renders settled
+  const [hasSeenSequence, setHasSeenSequence] = useState(() => readSessionFlag(SEQ_KEY));
   // While true, the intro stays mounted as an overlay above the overview so
   // the hero title can fly (FLIP) to the TitleMark, which renders as a ghost.
   const [transitioning, setTransitioning] = useState(false);
+  // Overview → dashboard runs the retract exit first; this holds the target
+  // while the overview un-writes itself, then the swap happens on black.
+  const [leaving, setLeaving] = useState<PlatformView | null>(null);
+  // How the overview is being entered: "return" (scrolled back up from the
+  // dashboard) plays the retract in reverse — the record writes back in.
+  const [overviewEntry, setOverviewEntry] = useState<"normal" | "return">("normal");
+  const lenisRef = useRef<Lenis | null>(null);
+
+  // Lenis smooth scroll — normalises mouse-wheel vs trackpad deltas so the
+  // dashboard scrub feels the same on both. Driven from GSAP's ticker per the
+  // ScrollTrigger integration recipe. Touch keeps native momentum (syncTouch
+  // off); reduced motion keeps native scrolling entirely.
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const lenis = new Lenis({
+      lerp: 0.09,
+      smoothWheel: true,
+      wheelMultiplier: 1,
+      syncTouch: false,
+    });
+    lenisRef.current = lenis;
+    lenis.on("scroll", ScrollTrigger.update);
+    const tick = (time: number) => lenis.raf(time * 1000);
+    gsap.ticker.add(tick);
+    gsap.ticker.lagSmoothing(0);
+    ScrollTrigger.refresh();
+    return () => {
+      gsap.ticker.remove(tick);
+      lenis.destroy();
+      lenisRef.current = null;
+    };
+  }, []);
 
   // Warm the turntable assets while the intro plays so the transition never
   // pops: poster into the image cache, video buffering via a detached element.
@@ -35,33 +87,97 @@ export default function App() {
     warm.src = TURNTABLE_VIDEO_SRC;
   }, []);
 
+  // …and warm the dashboard's opening leg while the user is on the overview,
+  // so the retract hands directly into an already-decodable first frame.
+  useEffect(() => {
+    if (view !== "overview") return;
+    const img = new Image();
+    img.src = STATIONS[0].travelPoster;
+    const warm = document.createElement("video");
+    warm.preload = "auto";
+    warm.muted = true;
+    warm.src = STATIONS[0].travelSrc;
+  }, [view]);
+
+  // each view owns its own scroll world — reset on swap (through Lenis when
+  // it's active, so its internal target can't fight the jump)
+  useEffect(() => {
+    const lenis = lenisRef.current;
+    if (lenis) lenis.scrollTo(0, { immediate: true, force: true });
+    else window.scrollTo(0, 0);
+  }, [view]);
+
   const handleEnter = useCallback(() => {
-    try {
-      sessionStorage.setItem(SEEN_KEY, "1");
-    } catch {
-      /* private mode — session flag just won't persist */
-    }
+    writeSessionFlag(SEEN_KEY);
     setHasSeenIntro(true);
+    setOverviewEntry("normal");
     setView("overview");
     setTransitioning(true); // intro remains mounted on top until the flight lands
   }, []);
 
+  const handleSequenceDone = useCallback(() => {
+    writeSessionFlag(SEQ_KEY);
+    setHasSeenSequence(true);
+  }, []);
+
   const handleExited = useCallback(() => setTransitioning(false), []);
 
-  // Chrome navigation — 'intro' comes from the TitleMark (fully-formed title
-  // page, no replay); other views arrive as their parts are built.
-  const handleNavigate = useCallback((next: PlatformView) => setView(next), []);
+  const handleNavigate = useCallback(
+    (next: PlatformView) => {
+      if (next === view) return;
+      if (view === "overview" && next === "dashboard") {
+        setLeaving("dashboard"); // TurntableView retracts, then onRetracted swaps
+        return;
+      }
+      if (next === "overview") setOverviewEntry("normal");
+      setView(next);
+    },
+    [view],
+  );
+
+  const handleRetracted = useCallback(() => {
+    setLeaving((target) => {
+      if (target) setView(target);
+      return null;
+    });
+  }, []);
+
+  const handleAdvance = useCallback(() => handleNavigate("dashboard"), [handleNavigate]);
+
+  // scrolling up from the dashboard's top: the record writes back in
+  const handleDashboardReturn = useCallback(() => {
+    setOverviewEntry("return");
+    setView("overview");
+  }, []);
 
   return (
     <>
       {view === "overview" && (
         <PlatformChrome
           key="overview"
-          currentView="overview"
+          // the nav indicator slides to the target DURING the retract
+          currentView={leaving ?? "overview"}
           onNavigate={handleNavigate}
           markGhost={transitioning}
         >
-          <TurntableView />
+          <TurntableView
+            // "sequence" only on the very first arrival this session: scroll
+            // locks while the record writes itself; every later visit settles
+            entry={
+              overviewEntry === "return" ? "return" : hasSeenSequence ? "settled" : "sequence"
+            }
+            lenis={lenisRef}
+            onSequenceDone={handleSequenceDone}
+            onAdvance={handleAdvance}
+            retracting={leaving === "dashboard"}
+            onRetracted={handleRetracted}
+          />
+        </PlatformChrome>
+      )}
+      {view === "dashboard" && (
+        // scrim: the nav needs separation from the bright graded video here
+        <PlatformChrome key="dashboard" currentView="dashboard" onNavigate={handleNavigate} scrim>
+          <DashboardScroll onReturn={handleDashboardReturn} />
         </PlatformChrome>
       )}
       {(view === "intro" || transitioning) && (

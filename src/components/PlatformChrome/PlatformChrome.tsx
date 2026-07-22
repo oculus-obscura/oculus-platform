@@ -29,7 +29,7 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { label: "Overview", view: "overview", enabled: true },
-  { label: "Data Dashboard", view: "dashboard", enabled: false },
+  { label: "Data Dashboard", view: "dashboard", enabled: true },
   { label: "Simulation", view: "simulation", enabled: false },
   { label: "Synthesis", view: "synthesis", enabled: false },
 ];
@@ -39,6 +39,11 @@ interface PlatformChromeProps {
   onNavigate: (view: PlatformView) => void;
   /** Render the TitleMark invisibly (FLIP landing target during the enter flight). */
   markGhost?: boolean;
+  /**
+   * Top scrim beneath the bar — for views that sit over video/bright imagery
+   * (the dashboard). Leave off over dark grounds like the overview.
+   */
+  scrim?: boolean;
   children: ReactNode;
 }
 
@@ -46,6 +51,7 @@ export default function PlatformChrome({
   currentView,
   onNavigate,
   markGhost = false,
+  scrim = false,
   children,
 }: PlatformChromeProps) {
   const listRef = useRef<HTMLUListElement>(null);
@@ -78,6 +84,7 @@ export default function PlatformChrome({
 
   return (
     <div className="platform-chrome">
+      {scrim && <div className="platform-chrome__scrim" aria-hidden="true" />}
       <header className="platform-chrome__bar">
         <TitleMark ghost={markGhost} onClick={() => onNavigate("intro")} />
         <nav className="pc-nav" aria-label="Platform sections">

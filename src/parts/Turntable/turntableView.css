@@ -73,6 +73,90 @@
   inset: -8px;
 }
 
+/* ---- skip control (sequence lock's way out; replay's spot, replay hidden) ---- */
+.turntable__skip {
+  position: absolute;
+  right: clamp(16px, 2vw, 28px);
+  bottom: clamp(14px, 2.5vh, 24px);
+  z-index: 3;
+  min-height: 44px;
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  color: var(--color-accent-hover); /* shell teal, bright enough at this size */
+  background: color-mix(in srgb, var(--color-bg) 40%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-accent) 40%, transparent);
+  border-radius: 9px;
+  padding: 8px 14px;
+  cursor: pointer;
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  animation: skip-in var(--dur-slow) var(--ease-out);
+  transition:
+    color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out);
+}
+.turntable__skip:hover,
+.turntable__skip:focus-visible {
+  color: var(--color-text);
+  border-color: color-mix(in srgb, var(--color-accent) 70%, transparent);
+}
+@keyframes skip-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ---- advance affordance → Data Dashboard (quiet, bottom-center) ---- */
+.turntable__advance {
+  position: absolute;
+  left: 50%;
+  bottom: clamp(10px, 1.6vh, 18px);
+  transform: translateX(-50%);
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 44px;
+  min-width: 44px;
+  padding: var(--space-2) var(--space-4);
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: var(--fs-caption);
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  transition: color var(--dur-fast) var(--ease-out);
+}
+.turntable__advance:hover,
+.turntable__advance:focus-visible {
+  color: var(--color-accent-hover);
+}
+.turntable__advance-chevron {
+  width: 14px;
+  height: 7px;
+  animation: advance-bob 2.6s var(--ease-in-out) infinite;
+}
+@keyframes advance-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(4px);
+  }
+}
+
 /* ---- data layer (wide: overlay grid in the margins) ---- */
 .turntable__data {
   position: absolute;
@@ -89,7 +173,8 @@
   grid-template-areas:
     "measured . withheld"
     "pivot pivot pivot";
-  padding: clamp(72px, 10vh, 110px) clamp(20px, 3vw, 48px) clamp(18px, 3.5vh, 40px);
+  /* bottom padding leaves room for the advance affordance under the pivot */
+  padding: clamp(72px, 10vh, 110px) clamp(20px, 3vw, 48px) clamp(52px, 8vh, 84px);
   pointer-events: none; /* pure display; replay button stays clickable below */
 }
 
@@ -310,8 +395,9 @@
     display: flex;
     flex-direction: column;
     gap: var(--space-7);
-    /* extra top room clears the below-video replay button */
-    padding: var(--space-8) var(--space-5) var(--space-8);
+    /* extra top room clears the below-video replay button; extra bottom
+       room houses the advance affordance at the section's end */
+    padding: var(--space-8) var(--space-5) var(--space-9);
     max-width: 620px;
     margin-inline: auto;
   }

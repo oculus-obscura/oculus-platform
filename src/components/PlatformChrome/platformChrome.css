@@ -6,6 +6,24 @@
  * underneath the dissolving stage during the enter transition.
  */
 
+/* top scrim for video-backed views: separates the nav from bright frames,
+   beneath the bar (z9 < z10), above the page's video/data layers */
+.platform-chrome__scrim {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 130px;
+  z-index: 9;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.7) 0%,
+    rgba(0, 0, 0, 0.35) 55%,
+    transparent 100%
+  );
+}
+
 .platform-chrome__bar {
   position: fixed;
   top: 0;
