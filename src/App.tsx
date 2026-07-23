@@ -9,8 +9,8 @@ import TurntableView, {
   TURNTABLE_VIDEO_SRC,
 } from "./parts/Turntable/TurntableView";
 import DashboardScroll from "./parts/Dashboard/DashboardScroll";
-import SimulationGame from "./parts/Simulation/SimulationGame";
-import SynthesisPlaceholder from "./parts/Synthesis/SynthesisPlaceholder";
+import SimulationGame, { type CompletedSession } from "./parts/Simulation/SimulationGame";
+import SynthesisView from "./parts/Synthesis/SynthesisView";
 import LeaveConfirm from "./components/LeaveConfirm/LeaveConfirm";
 import { STATIONS } from "./parts/Dashboard/stationData";
 
@@ -60,6 +60,10 @@ export default function App() {
   const [simRoundActive, setSimRoundActive] = useState(false);
   // The navigation target held while the leave-confirm dialog is open.
   const [pendingLeave, setPendingLeave] = useState<PlatformView | null>(null);
+  // The most recent COMPLETED simulation round (ordered, in-memory only — a
+  // refresh clears it). Feeds Synthesis View 1 in Step 2; each new completed
+  // round replaces it. Abandoned rounds never set it.
+  const [lastSession, setLastSession] = useState<CompletedSession | null>(null);
   const lenisRef = useRef<Lenis | null>(null);
 
   // Lenis smooth scroll — normalises mouse-wheel vs trackpad deltas so the
@@ -234,12 +238,19 @@ export default function App() {
             entry={simEntry}
             onRoundActiveChange={setSimRoundActive}
             onExitToSynthesis={() => setView("synthesis")}
+            onSessionComplete={setLastSession}
           />
         </PlatformChrome>
       )}
       {view === "synthesis" && (
         <PlatformChrome key="synthesis" currentView="synthesis" onNavigate={handleNavigate}>
-          <SynthesisPlaceholder />
+          <SynthesisView
+            lastSession={lastSession}
+            onPlaySimulation={() => {
+              setSimEntry("direct");
+              setView("simulation");
+            }}
+          />
         </PlatformChrome>
       )}
       {pendingLeave !== null && <LeaveConfirm onStay={handleLeaveStay} onLeave={handleLeaveConfirm} />}

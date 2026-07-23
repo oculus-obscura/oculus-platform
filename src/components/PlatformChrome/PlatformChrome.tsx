@@ -31,7 +31,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Overview", view: "overview", enabled: true },
   { label: "Data Dashboard", view: "dashboard", enabled: true },
   { label: "Simulation", view: "simulation", enabled: true },
-  { label: "Synthesis", view: "synthesis", enabled: false },
+  { label: "Synthesis", view: "synthesis", enabled: true },
 ];
 
 interface PlatformChromeProps {

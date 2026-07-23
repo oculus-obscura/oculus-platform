@@ -1,0 +1,836 @@
+/**
+ * synthesisView.css — ported from design-reference/oculus_synthesis.html,
+ * scoped under .syn so the prototype's generic class names (.panel, .cta, .pill…)
+ * cannot leak into the rest of the platform.
+ *
+ * Part A of the UI overhaul (universal systems across the aggregate views)
+ * replaces some prototype systems — everything else keeps the prototype's own
+ * values, do not retune:
+ *   - BACKGROUND: the interior photograph is gone from the aggregate views;
+ *     the ground is a generated data substrate (.syn-substrate — ledger grid,
+ *     drifting fragments of the real dataset, vignette, grain; the grain /
+ *     vignette / drift / scan treatments mirror IntroSequence). View 1 keeps
+ *     its photo ground, scoped to its own section.
+ *   - NAVIGATION: a persistent bottom-centre glass cluster (.syn-nav)
+ *     replaces the in-view arrows.
+ *   - CONTROLS: one segmented-control language (.syn-ctl) in panel header
+ *     rows (.syn-phead) — controls never sit on a visualization.
+ *   - REVEALS: views 2–4 stagger in via synthesisReveal.ts.
+ *   - LEGIBILITY FLOOR: no data label < 12px, no numeric value < 14px, panel
+ *     titles ≥ 13px, tabular figures everywhere, text colour never dimmer
+ *     than --color-text-muted (raised to --syn-text-raised over busy ground).
+ *
+ * Platform-shell additions (NOT from the prototype): the .syn root, the
+ * ~600ms entry cross-fade (Amendment C), the loading/empty/unreachable
+ * states, and the quiet play-invite. Colour semantics: TEAL = audited prices
+ * (measured), AMBER = simulated behaviour (proxied), PLUM = reserved. The
+ * substrate and nav cluster are CHROME — teal monochrome only.
+ */
+
+/* ── platform shell: substrate behind, stage centred, nav cluster below ── */
+.syn {
+  --space-black: #0a0a0a;
+  --smoked-titanium: #505556;
+  --titanium-pearl: #e8e8e3;
+  --teal: #1a8787;
+  --teal-bright: #3ccfcf;
+  --teal-glow: #8de8e0;
+  --teal-deep: #0b4546;
+  --amber: #ffb020;
+  --plum: #e24fd1;
+  --panel: rgba(14, 20, 21, 0.66);
+  --panel-2: rgba(18, 26, 27, 0.8);
+  --border: rgba(80, 85, 86, 0.42);
+  --border-soft: rgba(80, 85, 86, 0.24);
+  /* Part A legibility floor: muted copy over the substrate's busier areas
+     lifts to this (no global token exists for it; local like the rest) */
+  --syn-text-raised: #c6cbcb;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  /* clear the fixed platform chrome — the bar bottoms out at ~74px on
+     desktop, so the minimum must sit above it (Part A: the stage is often
+     height-limited now and no longer has slack to hide a shortfall) */
+  top: clamp(76px, 9vh, 84px);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  background: var(--space-black);
+  font-family: "Space Grotesk", sans-serif;
+  color: var(--titanium-pearl);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+  -webkit-font-smoothing: antialiased;
+  /* Amendment C: arrive on a cross-fade, never a hard cut */
+  animation: synEnter 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@media (max-width: 767px) {
+  .syn {
+    top: clamp(118px, 17vh, 140px); /* two-row chrome */
+  }
+}
+@keyframes synEnter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+/* the area between chrome and nav cluster — the stage scales to fit it */
+.syn-stagewrap {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.syn-stage {
+  width: 1920px;
+  height: 1080px;
+  flex: none;
+  position: relative;
+  transform-origin: center center;
+  overflow: hidden;
+  /* transparent: the full-bleed substrate is the ground — no letterbox edges */
+  background: transparent;
+}
+/* View 1's own ground (scoped to its section — the aggregate views carry no
+   photograph). z:-1 keeps it beneath the view's flowing content; the section
+   itself is opaque black so View 1 renders exactly as before Part A. */
+.syn #view1 {
+  background: var(--space-black);
+}
+.syn .view > .syn-bg {
+  position: absolute;
+  inset: 0;
+  background: #050708 center/cover no-repeat;
+  background-image: url("/images/game/bg.jpg");
+  opacity: 0.26;
+  z-index: -1;
+}
+.syn .view > .syn-bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(120% 80% at 50% 0%, rgba(11, 69, 70, 0.18), transparent 60%);
+}
+
+/* ── the generated data substrate (Part A — chrome, teal only) ── */
+.syn-substrate {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.syn-substrate .syn-sub-grid {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+/* ledger grid: ruled register hairlines that draw themselves in
+   (stroke-dashoffset via pathLength=1 — the IntroSequence approach) */
+.syn-substrate .syn-sub-line {
+  stroke: var(--teal);
+  stroke-width: 1;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: synGridDraw 1.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.syn-substrate .syn-sub-line.h { opacity: 0.055; }
+.syn-substrate .syn-sub-line.h.major { opacity: 0.085; }
+.syn-substrate .syn-sub-line.v { opacity: 0.04; }
+@keyframes synGridDraw {
+  to { stroke-dashoffset: 0; }
+}
+/* drifting fragments of the real dataset (IntroSequence datalayer treatment) */
+.syn-substrate .syn-sub-frags {
+  position: absolute;
+  inset: 0;
+  opacity: 0.55;
+  filter: blur(1.5px);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.syn-substrate .syn-sub-frag {
+  position: absolute;
+  white-space: nowrap;
+  letter-spacing: 0.08em;
+  opacity: 0;
+  animation-name: synFragFloat;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+/* IntroSequence numFloat, verbatim */
+@keyframes synFragFloat {
+  0% { opacity: 0; transform: translateY(10px); }
+  25% { opacity: 1; }
+  55% { opacity: 1; transform: translateY(-6px); }
+  100% { opacity: 0; transform: translateY(-20px); }
+}
+/* one very slow scan sweep for life (IntroSequence scan, slowed) */
+.syn-substrate .syn-sub-scan {
+  position: absolute;
+  top: -10%;
+  bottom: -10%;
+  left: 0;
+  width: 44vw;
+  mix-blend-mode: screen;
+  filter: blur(11px);
+  background: linear-gradient(
+    100deg,
+    rgba(60, 207, 207, 0) 0%,
+    rgba(60, 207, 207, 0.06) 45%,
+    rgba(141, 232, 224, 0.045) 55%,
+    rgba(60, 207, 207, 0) 100%
+  );
+  animation: synScanSweep 16s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+@keyframes synScanSweep {
+  0% { transform: translateX(-60vw) skewX(-8deg); }
+  100% { transform: translateX(165vw) skewX(-8deg); }
+}
+/* vignette + grain (IntroSequence, verbatim) */
+.syn-substrate .syn-sub-vig {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 78% 76% at 50% 46%,
+    rgba(0, 0, 0, 0) 52%,
+    rgba(0, 0, 0, 0.52) 100%
+  );
+}
+.syn-substrate .syn-sub-grain {
+  position: absolute;
+  inset: 0;
+  opacity: 0.06;
+  mix-blend-mode: overlay;
+  background-size: 120px 120px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation: synGrainShift 0.55s steps(1) infinite;
+}
+@keyframes synGrainShift {
+  0% { background-position: 0 0; }
+  20% { background-position: -12px 8px; }
+  40% { background-position: 9px -11px; }
+  60% { background-position: -7px -9px; }
+  80% { background-position: 11px 7px; }
+  100% { background-position: 0 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .syn-substrate .syn-sub-line { animation: none; stroke-dashoffset: 0; }
+  .syn-substrate .syn-sub-frag { animation: none; opacity: 0.7; transform: none; }
+  .syn-substrate .syn-sub-scan { display: none; }
+  .syn-substrate .syn-sub-grain { animation: none; }
+}
+
+.syn .mich { font-family: "Michroma", sans-serif; font-weight: 400; }
+.syn .num { font-variant-numeric: tabular-nums; font-weight: 500; }
+.syn button { font-family: inherit; color: inherit; cursor: pointer; background: none; border: none; }
+.syn :focus-visible { outline: 2px solid var(--teal-bright); outline-offset: 2px; border-radius: 4px; }
+
+/* ── views ── */
+.syn .view { position: absolute; inset: 0; z-index: 2; opacity: 0; pointer-events: none; transition: opacity 0.55s ease; }
+.syn .view.active { opacity: 1; pointer-events: auto; }
+@media (prefers-reduced-motion: reduce) { .syn .view { transition: none; } }
+
+/* ── shared ── */
+.syn .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; backdrop-filter: blur(3px); }
+.syn .panel-t { color: var(--teal-bright); font-size: 15px; letter-spacing: 0.18em; font-weight: 600; text-transform: uppercase; }
+.syn .lbl { color: var(--titanium-pearl); text-transform: uppercase; letter-spacing: 0.14em; font-size: 12px; font-weight: 500; }
+.syn .muted { color: var(--titanium-pearl); }
+.syn .hair { height: 1px; background: var(--border-soft); border: 0; }
+
+.syn .pill { display: inline-flex; align-items: center; padding: 5px 11px; border-radius: 4px; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap; }
+.syn .pill.entry { background: rgba(11, 69, 70, 0.85); color: var(--teal-glow); border: 1px solid var(--teal); }
+.syn .pill.typical { background: rgba(11, 69, 70, 0.5); color: var(--teal-bright); border: 1px solid rgba(26, 135, 135, 0.6); }
+.syn .pill.high { background: rgba(80, 85, 86, 0.28); color: var(--titanium-pearl); border: 1px solid var(--smoked-titanium); }
+.syn .pill.reject { background: rgba(255, 176, 32, 0.12); color: var(--amber); border: 1px solid rgba(255, 176, 32, 0.55); }
+
+/* ── the navigation cluster (Part A — chrome; replaces the in-view arrows) ──
+   Bottom-centre, its own glass surface, real pixels (outside the scaled
+   stage). Tap targets ≥ 44px. The .glass utility supplies the surface. */
+.syn .syn-navrow {
+  position: relative;
+  z-index: 3;
+  flex: none;
+  display: flex;
+  justify-content: center;
+  padding: 10px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+}
+.syn .syn-nav {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 5px 14px 8px;
+}
+.syn .syn-nav__row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.syn .syn-nav__arrow {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+.syn .syn-nav__arrow svg {
+  width: 22px;
+  height: 22px;
+  stroke: var(--teal-bright);
+  fill: none;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.syn .syn-nav__arrow:hover:not(:disabled) { background: rgba(26, 135, 135, 0.16); }
+.syn .syn-nav__arrow:disabled { opacity: 0.28; cursor: default; }
+.syn .syn-nav__dots {
+  display: flex;
+  align-items: center;
+}
+.syn .syn-nav__dot {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+}
+.syn .syn-nav__dot span {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1px solid var(--color-border-strong);
+  background: transparent;
+  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+}
+.syn .syn-nav__dot:hover span { border-color: var(--teal-bright); }
+.syn .syn-nav__dot.on span {
+  background: var(--teal-bright);
+  border-color: var(--teal-bright);
+  box-shadow: 0 0 10px rgba(60, 207, 207, 0.55);
+}
+.syn .syn-nav__name {
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  padding-bottom: 2px;
+  min-height: 17px; /* holds the row when a name is momentarily absent */
+}
+/* one-time keyboard hint — fades itself out; JS unmounts it after */
+.syn .syn-nav__hint {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted);
+  background: rgba(10, 14, 15, 0.85);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 6px 12px;
+  pointer-events: none;
+  animation: synHintLife 5.2s ease forwards;
+}
+@keyframes synHintLife {
+  0% { opacity: 0; transform: translate(-50%, 4px); }
+  8%, 78% { opacity: 1; transform: translate(-50%, 0); }
+  100% { opacity: 0; transform: translate(-50%, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .syn .syn-nav__hint { animation: none; }
+}
+
+/* big CTA */
+@keyframes synCtaBreath { 0%, 100% { box-shadow: 0 0 16px rgba(60, 207, 207, 0.22); } 50% { box-shadow: 0 0 32px rgba(60, 207, 207, 0.52); } }
+.syn .cta { display: inline-flex; align-items: center; gap: 16px; padding: 0 40px; height: 66px; background: var(--teal); border: 1.5px solid var(--teal-bright); border-radius: 8px; color: var(--titanium-pearl); font-size: 19px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; transition: background 0.2s, box-shadow 0.2s, color 0.2s; animation: synCtaBreath 3.2s ease-in-out infinite; }
+.syn .cta:hover { background: var(--teal-bright); color: #042018; }
+.syn .cta-arrow { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 2; transition: transform 0.25s; }
+.syn .cta:hover .cta-arrow { transform: translateX(7px); }
+@media (prefers-reduced-motion: reduce) { .syn .cta { animation: none; } }
+.syn .cta-out { display: inline-flex; align-items: center; gap: 18px; padding: 0 34px; height: 58px; border: 1px solid var(--teal); border-radius: 6px; color: var(--teal-glow); font-size: 16px; letter-spacing: 0.18em; text-transform: uppercase; background: rgba(10, 14, 15, 0.4); transition: background 0.2s, box-shadow 0.2s; }
+.syn .cta-out:hover { background: rgba(11, 69, 70, 0.55); box-shadow: 0 0 22px rgba(60, 207, 207, 0.22); }
+.syn .cta-out svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.6; }
+
+/* ── VIEW 1 ── */
+.syn #view1 { padding: 34px 44px; }
+.syn #view1 .panel-t, .syn #view1 .lbl, .syn #view1 .data-table th, .syn #view1 .path-cap, .syn #view1 .path-floor, .syn #view1 .cta { font-family: "Michroma", sans-serif; font-weight: 400; }
+.syn #view1 .lbl { letter-spacing: 0.1em; }
+.syn #view1 .data-table th { letter-spacing: 0.05em; }
+.syn #view1 .stat-cell .lbl { font-size: 12px; letter-spacing: 0.04em; line-height: 1.3; }
+.syn #view1 .cta { font-weight: 400; letter-spacing: 0.14em; }
+.syn .v1-grid { display: grid; grid-template-columns: 472px 1fr; grid-template-rows: auto 1.15fr 1.05fr auto; gap: 16px; height: 100%; }
+.syn .stat-cell { border: 1px solid var(--border); border-radius: 10px; background: var(--panel); padding: 22px 24px; display: flex; flex-direction: column; justify-content: space-between; }
+.syn .stat-cell .top { display: flex; align-items: center; gap: 16px; }
+.syn .stat-cell .big { font-size: 52px; font-weight: 600; line-height: 1; }
+.syn .stat-cell .ico { width: 34px; height: 34px; flex: 0 0 auto; }
+.syn .stat-cell .ico svg { width: 34px; height: 34px; stroke: var(--teal-bright); fill: none; stroke-width: 1.6; }
+.syn .data-table { width: 100%; border-collapse: collapse; }
+.syn .data-table th { color: var(--titanium-pearl); text-transform: uppercase; letter-spacing: 0.12em; font-size: 12px; font-weight: 600; text-align: left; padding: 0 16px 14px; border-bottom: 1px solid var(--border-soft); }
+.syn .data-table td { padding: 18px 16px; border-bottom: 1px solid var(--border-soft); font-size: 17px; }
+.syn .store-name { font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; font-size: 16px; }
+.syn .empty-line { color: var(--titanium-pearl); font-size: 16px; text-align: center; padding: 34px 20px; line-height: 1.6; }
+
+/* path */
+.syn .path-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 0; width: 100%; padding: 2px 6px; position: relative; }
+.syn .path-row::before { content: ""; position: absolute; left: 20px; right: 20px; top: 50%; border-top: 2px dotted rgba(60, 207, 207, 0.5); z-index: 0; }
+.syn .path-node { position: relative; z-index: 1; flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 9px; min-width: 0; }
+.syn .path-card { width: 270px; min-height: 196px; border: 1px solid var(--border); border-radius: 10px; background: rgba(18, 26, 27, 0.94); padding: 22px 18px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: 10px; position: relative; }
+.syn .path-card.mini { width: 200px; min-height: 196px; justify-content: center; gap: 18px; }
+.syn .path-row.n3 .path-card { width: 360px; }
+.syn .path-row.n3 .path-card.mini { width: 300px; }
+.syn .path-row.n4 .path-card { width: 330px; }
+.syn .path-row.n4 .path-card.mini { width: 250px; }
+.syn .path-row.n5 .path-card { width: 300px; }
+.syn .path-row.n5 .path-card.mini { width: 225px; }
+.syn .path-row.n6 .path-card { width: 262px; padding: 18px 16px; min-height: 172px; }
+.syn .path-row.n6 .path-card.mini { width: 196px; min-height: 172px; padding: 18px 16px; }
+.syn .path-row.n6 .store-name { font-size: 17px !important; }
+.syn .path-row.n6 .path-card .num { font-size: 19px !important; }
+.syn #view1 .path-card .pill { padding: 8px 18px; font-size: 14px; }
+.syn .path-ico svg { width: 50px; height: 50px; stroke: var(--teal-bright); fill: none; stroke-width: 1.5; }
+.syn .path-badge { position: absolute; top: -12px; right: -12px; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; z-index: 2; }
+.syn .path-badge.ok { background: var(--teal); }
+.syn .path-badge.no { background: var(--amber); }
+.syn .path-cap { font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--titanium-pearl); text-align: center; }
+.syn .path-floor { font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--titanium-pearl); }
+
+/* ── VIEW 2 — Part B1: five tiers. Between-tier space is large (the 22px
+   row gap), within-tier space small — grouping reads from whitespace. ── */
+.syn #view2 {
+  padding: 20px 30px 16px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 560px;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  column-gap: 16px;
+  row-gap: 22px;
+}
+
+/* T1 · hero — the ledger's size anchors the page */
+.syn .syn-hero {
+  grid-column: 1 / -1;
+  height: 118px; /* fixed hero band — the 1fr map row absorbs all slack */
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 48px;
+  padding: 0 6px;
+}
+.syn .syn-hero__title { min-width: 0; }
+.syn .syn-hero h1 { font-size: 38px; letter-spacing: 0.06em; }
+.syn .syn-hero__sub { font-size: 13px; margin-top: 8px; }
+.syn .syn-hero__ledger {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex: 0 0 auto;
+}
+.syn .syn-hero__nblock { display: flex; align-items: flex-end; gap: 18px; }
+.syn .syn-hero__n {
+  font-size: 88px;
+  line-height: 0.88;
+  letter-spacing: 0.02em;
+  color: var(--titanium-pearl);
+  min-width: 1ch;
+  text-align: right;
+}
+.syn .syn-hero__ncap {
+  font-size: 13px;
+  letter-spacing: 0.22em;
+  line-height: 1.55;
+  color: var(--teal-bright);
+  font-weight: 600;
+  padding-bottom: 6px;
+}
+.syn .syn-hero__period { font-size: 13px; letter-spacing: 0.12em; }
+
+/* T3 · the support column beside the map */
+.syn .syn-side {
+  grid-column: 2;
+  grid-row: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+
+/* T4 · one band, hairline above, three unified panels */
+.syn .syn-tier4 {
+  grid-column: 1 / -1;
+  border-top: 1px solid var(--border-soft);
+  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+}
+.syn .syn-tier4__head { display: flex; justify-content: space-between; align-items: baseline; gap: 20px; padding: 0 4px; }
+.syn .syn-tier4__t { font-size: 13px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--teal-bright); font-weight: 600; }
+.syn .syn-tier4__note { font-size: 12px; font-style: italic; letter-spacing: 0.03em; }
+/* bounded panels: a fixed budget keeps the map row (1fr) generous */
+.syn .syn-tier4__grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; min-height: 0; }
+.syn .syn-tier4__grid > .syn-b-panel { height: 198px; overflow: hidden; }
+
+/* T5 · closing summary */
+.syn .syn-tier5 { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 10px; }
+
+/* provisional marker — a statistic on fewer than 10 of its unit carries it */
+.syn .syn-prov { position: relative; display: inline-block; width: 15px; height: 13px; margin-left: 5px; cursor: help; vertical-align: baseline; }
+.syn .syn-prov::before { content: ""; position: absolute; left: 4px; bottom: 1px; width: 7px; height: 7px; border-radius: 50%; background: var(--amber); opacity: 0.85; }
+.syn .syn-prov .tip {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 240px;
+  background: rgba(6, 10, 11, 0.97);
+  border: 1px solid rgba(255, 176, 32, 0.5);
+  border-radius: 6px;
+  padding: 9px 11px;
+  font-size: 12px;
+  font-weight: 400;
+  font-style: normal;
+  line-height: 1.5;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  text-align: left;
+  white-space: normal;
+  color: var(--titanium-pearl);
+  z-index: 40;
+}
+.syn .syn-prov:hover .tip, .syn .syn-prov:focus .tip { display: block; }
+/* T2 · the Store Response Map — header row on top (controls never over the
+   map), floor bands in the middle, the stated legend beneath */
+.syn #map-wrap { position: relative; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; min-height: 0; background: #060809; grid-column: 1; grid-row: 2; display: flex; flex-direction: column; }
+.syn .syn-map-body { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.syn .syn-map-bands { position: relative; flex: 1; min-height: 0; }
+.syn .syn-band { position: absolute; left: 0; right: 0; }
+.syn .syn-band__lab {
+  position: absolute;
+  left: 20px;
+  top: 12px;
+  font-size: 12px;
+  letter-spacing: 0.24em;
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+.syn .syn-band__div { position: absolute; left: 16px; right: 16px; top: 0; height: 1px; background: var(--border-soft); display: block; }
+/* generated map ground — a fine ledger grid + depth, no photograph */
+.syn .syn-map-ground {
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(0deg, rgba(60, 207, 207, 0.045) 0 1px, transparent 1px 56px),
+    repeating-linear-gradient(90deg, rgba(60, 207, 207, 0.03) 0 1px, transparent 1px 56px),
+    radial-gradient(120% 90% at 50% 20%, rgba(11, 69, 70, 0.22), transparent 70%);
+}
+/* T3 · ranking — real rows: rank · name · value, raw counts underneath
+   beside a thin value bar */
+.syn .syn-rank-panel { flex: 1.28; min-height: 0; display: flex; flex-direction: column; padding: 14px 20px 10px; }
+.syn .rk-list { flex: 1; min-height: 0; margin-top: 2px; overflow: hidden; }
+.syn .rk-row { display: flex; gap: 10px; align-items: flex-start; padding: 6px 0 7px; border-bottom: 1px solid rgba(80, 85, 86, 0.14); }
+.syn .rk-row:last-child { border-bottom: 0; }
+.syn .rk-rank { width: 18px; flex: none; font-size: 13px; color: var(--color-text-muted); padding-top: 1px; }
+.syn .rk-main { flex: 1; min-width: 0; }
+.syn .rk-line { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; line-height: 1.25; }
+.syn .rk-name { font-size: 12.5px; letter-spacing: 0.12em; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.syn .rk-line2 { display: flex; align-items: center; gap: 10px; margin-top: 3px; line-height: 1.2; }
+.syn .rk-sub { flex: none; font-size: 12px; font-variant-numeric: tabular-nums; }
+.syn .rk-bar { flex: 1; height: 3px; background: rgba(80, 85, 86, 0.22); border-radius: 2px; overflow: hidden; }
+.syn .rk-bar span { display: block; height: 100%; border-radius: 2px; transition: width 0.5s ease; }
+.syn .rk-bar span.amber { background: linear-gradient(90deg, rgba(255, 176, 32, 0.45), var(--amber)); }
+.syn .rk-bar span.teal { background: linear-gradient(90deg, var(--teal-deep), var(--teal-bright)); }
+.syn .rk-val { flex: none; font-size: 15px; font-weight: 600; }
+.syn .rk-val.amber { color: var(--amber); }
+.syn .rk-val.teal { color: var(--teal-bright); }
+.syn .rk-empty { font-size: 13px; line-height: 1.65; padding: 16px 2px; letter-spacing: 0.02em; }
+
+/* T3 · store pricing — the ranked list the Store Pricing control drives */
+.syn .syn-price-panel { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 14px 20px 10px; }
+.syn .syn-price-panel .syn-phead { padding: 0 0 6px; }
+.syn .pr-list { flex: 1; min-height: 0; overflow: hidden; }
+.syn .pr-row { display: flex; align-items: baseline; gap: 10px; padding: 3px 0; }
+.syn .pr-rank { width: 20px; flex: none; font-size: 12px; color: var(--color-text-muted); }
+.syn .pr-name { flex: 1; min-width: 0; font-size: 12.5px; letter-spacing: 0.1em; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.syn .pr-fl { flex: none; font-size: 12px; letter-spacing: 0.08em; }
+.syn .pr-val { flex: none; font-size: 15px; font-weight: 600; color: var(--teal-bright); } /* measured = teal */
+/* ── Part A unified control language ──
+   ONE segmented-control component for every filter (synthesisUi
+   SegmentedControl), living in panel header rows — title left, controls
+   right, hairline beneath, visualization below. */
+.syn .syn-phead {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--border-soft);
+}
+.syn #map-wrap > .syn-phead { padding: 14px 20px 13px; flex: none; }
+.syn #rank-panel .syn-phead { padding: 0 0 10px; }
+.syn .syn-phead__title { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.syn .syn-phead__ctls {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.syn .syn-ctl { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.syn .syn-ctl__label {
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.syn .syn-ctl__seg {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  overflow: hidden;
+  background: rgba(8, 12, 13, 0.78); /* non-blur fallback stands alone */
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+.syn .syn-ctl__seg button {
+  padding: 0 15px;
+  height: 38px;
+  font-size: 13px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  border-right: 1px solid var(--border-soft);
+  transition: color 0.18s, background 0.18s;
+  white-space: nowrap;
+}
+.syn .syn-ctl__seg button:last-child { border-right: 0; }
+.syn .syn-ctl__seg button:hover { color: var(--titanium-pearl); }
+.syn .syn-ctl__seg button.on { background: var(--teal); color: var(--titanium-pearl); }
+/* a real button: labelled, focus-ringed (global .syn :focus-visible), with a
+   purpose tooltip on hover AND keyboard focus */
+.syn .map-ico-info { width: 26px; height: 26px; padding: 0; border: 1px solid var(--border); border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: var(--teal-bright); font-size: 13px; position: relative; transition: border-color 0.18s; }
+.syn .map-ico-info:hover { border-color: var(--teal-bright); }
+.syn .map-ico-info .tip { display: none; position: absolute; top: 32px; right: 0; width: 230px; background: rgba(6, 10, 11, 0.96); border: 1px solid var(--teal); border-radius: 6px; padding: 10px 12px; font-size: 12px; line-height: 1.5; color: var(--titanium-pearl); letter-spacing: 0.02em; text-transform: none; text-align: left; z-index: 30; }
+.syn .map-ico-info:hover .tip, .syn .map-ico-info:focus .tip { display: block; }
+/* the dot field — every visual property stated in the legend */
+.syn #map-points { position: absolute; inset: 0; z-index: 8; }
+.syn .mpt {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: row; /* label BESIDE the dot — bands stay shallow */
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: left 0.45s cubic-bezier(0.16, 1, 0.3, 1), top 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+  border-radius: 8px;
+}
+@media (prefers-reduced-motion: reduce) { .syn .mpt { transition: none; } }
+.syn .mpt-dot { display: block; border-radius: 50%; box-sizing: border-box; flex: none; }
+.syn .mpt-dot.hollow { background: transparent; border: 1px solid rgba(232, 232, 227, 0.22); box-shadow: none; } /* never opened: a faint substrate of absence, no glow */
+.syn .mpt-name {
+  font-size: 12.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--titanium-pearl);
+  white-space: nowrap;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.95), 0 0 2px rgba(0, 0, 0, 0.9);
+}
+
+/* the legend strip — the encoding in words + a size scale */
+.syn .syn-map-legend {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  padding: 8px 16px 9px;
+  border-top: 1px solid var(--border-soft);
+  font-size: 12px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  z-index: 9;
+  position: relative;
+  background: rgba(6, 9, 10, 0.6);
+}
+.syn .syn-map-legend b { color: var(--titanium-pearl); font-weight: 600; }
+.syn .syn-map-legend .lg-item { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
+.syn .syn-map-legend .lg-amber { color: var(--amber); }
+.syn .syn-map-legend .lg-scale { display: inline-flex; align-items: center; gap: 9px; margin-left: 8px; }
+.syn .syn-map-legend .lg-refwrap { display: inline-flex; align-items: center; gap: 4px; }
+.syn .syn-map-legend .lg-ref { display: inline-block; border-radius: 50%; background: rgba(232, 232, 227, 0.3); border: 1px solid rgba(232, 232, 227, 0.4); flex: none; }
+.syn .syn-map-legend .lg-ref.hollow { width: 11px; height: 11px; background: transparent; border: 1px solid rgba(232, 232, 227, 0.25); }
+.syn .syn-map-legend .lg-refwrap i { font-style: normal; font-variant-numeric: tabular-nums; }
+.syn .syn-map-legend .lg-hint { margin-left: auto; font-style: italic; text-transform: none; letter-spacing: 0.04em; color: var(--color-text-muted); }
+
+/* the detail card (hover / keyboard focus) — counts + audited prices */
+.syn .syn-map-card { position: absolute; z-index: 30; width: 260px; background: rgba(6, 10, 11, 0.97); border: 1px solid var(--teal); border-radius: 8px; padding: 13px 15px; pointer-events: none; }
+.syn .syn-map-card .tt-n { font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; font-size: 14px; margin-bottom: 7px; }
+.syn .syn-map-card .tt-r { display: flex; justify-content: space-between; gap: 16px; font-size: 12px; padding: 2.5px 0; color: var(--color-text-muted); }
+.syn .syn-map-card .tt-r b { color: var(--titanium-pearl); font-weight: 500; font-size: 13px; font-variant-numeric: tabular-nums; text-align: right; }
+.syn .syn-map-card .tt-prices { display: flex; gap: 8px; margin-top: 9px; padding-top: 9px; border-top: 1px solid var(--border-soft); }
+.syn .syn-map-card .tt-price { flex: 1; display: flex; flex-direction: column; gap: 2px; font-size: 13px; font-weight: 600; color: var(--teal-bright); font-variant-numeric: tabular-nums; } /* measured = teal */
+.syn .syn-map-card .tt-price i { font-style: normal; font-size: 12px; font-weight: 500; letter-spacing: 0.12em; color: var(--color-text-muted); }
+
+/* T4 · the three behaviour panels — ONE internal system: same title
+   treatment, number scale, label sizing and padding */
+.syn .syn-b-panel { padding: 13px 20px 11px; display: flex; flex-direction: column; min-height: 0; }
+.syn .syn-b-panel .panel-t { font-size: 14px; }
+.syn .syn-b-body { flex: 1; min-height: 0; margin-top: 3px; }
+.syn .syn-b-foot { font-size: 12px; line-height: 1.4; margin-top: 6px; padding-top: 7px; border-top: 1px solid var(--border-soft); letter-spacing: 0.02em; }
+.syn .choice-row { display: grid; grid-template-columns: 26px 112px 1fr 40px 58px; align-items: center; gap: 12px; margin-top: 5px; }
+.syn .choice-row .ci svg { width: 20px; height: 20px; stroke: var(--teal-bright); fill: none; stroke-width: 1.8; }
+.syn .choice-row .cn { font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase; line-height: 1.3; }
+.syn .bar-track { height: 10px; background: rgba(80, 85, 86, 0.22); border-radius: 3px; overflow: hidden; display: block; }
+.syn .bar-fill { height: 100%; background: linear-gradient(90deg, var(--teal-deep), var(--teal)); border-radius: 3px; transition: width 0.8s ease; display: block; }
+.syn .choice-row .cc { font-size: 16px; font-weight: 600; text-align: right; line-height: 1.25; }
+.syn .choice-row .cp { font-size: 14px; color: var(--titanium-pearl); text-align: right; }
+.syn .syn-donut-row { display: flex; align-items: center; gap: 16px; }
+.syn .donut-legend { flex: 1; min-width: 0; }
+.syn .donut-legend .dl-row { display: flex; align-items: baseline; gap: 8px; margin-bottom: 5px; white-space: nowrap; }
+.syn .donut-legend .dl-row:last-child { margin-bottom: 0; }
+.syn .donut-legend .sw { width: 10px; height: 10px; border-radius: 50%; flex: 0 0 auto; align-self: center; }
+.syn .donut-legend .dt { font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; }
+.syn .donut-legend .dd { font-size: 12px; color: var(--titanium-pearl); font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; }
+.syn .syn-price-split { display: flex; gap: 14px; }
+.syn .syn-price-split > div { flex: 1; min-width: 0; }
+.syn .syn-price-split > div + div { border-left: 1px solid var(--border-soft); padding-left: 14px; }
+.syn .syn-price-split .num { font-size: 20px; font-weight: 600; }
+.syn .syn-price-split .lbl { margin-top: 1px; font-size: 12px; letter-spacing: 0.06em; line-height: 1.35; }
+.syn .syn-out-row { display: flex; gap: 20px; }
+.syn .syn-outside-big { flex: 0 0 140px; border: 1px solid var(--border); border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 12px 8px; }
+.syn .syn-out-pct { font-size: 40px; font-weight: 600; line-height: 1; }
+.syn .syn-out-count { font-size: 12px; margin-top: 7px; font-variant-numeric: tabular-nums; }
+.syn .syn-out-dests { flex: 1; min-width: 0; }
+.syn .dest-row { display: grid; grid-template-columns: 24px 140px 1fr 58px 42px; align-items: center; gap: 10px; margin-top: 7px; font-size: 12px; }
+.syn .dest-row .num { font-size: 14px; } /* legibility floor: numeric values ≥ 14px */
+.syn .dest-row .di svg { width: 20px; height: 20px; stroke: var(--teal-bright); fill: none; stroke-width: 1.5; }
+
+/* T5 · takeaways — the closing summary, slimmer than the tiers above it */
+.syn #takeaways { display: grid; grid-template-columns: auto repeat(4, 1fr); gap: 18px; align-items: center; padding: 10px 24px; }
+.syn .tk { display: flex; align-items: center; gap: 12px; }
+.syn .tk .tkico { width: 40px; height: 40px; flex: 0 0 auto; border: 1.5px solid var(--teal-bright); border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+.syn .tk .tkico svg { width: 20px; height: 20px; stroke: var(--teal-bright); fill: none; stroke-width: 2.6; }
+.syn .tk .tkt { font-size: 13px; line-height: 1.45; color: var(--titanium-pearl); }
+.syn .tk .tkt b { color: var(--teal-glow); font-weight: 600; }
+
+/* tutorial */
+.syn .syn-tutorial { position: absolute; inset: 0; z-index: 60; }
+.syn .tut-mask { position: absolute; inset: 0; pointer-events: auto; }
+.syn .tut-hole { position: absolute; border: 2px solid var(--teal-bright); border-radius: 10px; box-shadow: 0 0 0 9999px rgba(5, 7, 8, 0.82); transition: all 0.35s ease; pointer-events: none; }
+.syn .tut-card { position: absolute; width: 340px; background: rgba(8, 12, 13, 0.98); border: 1px solid var(--teal); border-radius: 10px; padding: 22px 24px; transition: all 0.35s ease; }
+.syn .tut-card .tc-step { font-size: 12px; letter-spacing: 0.16em; color: var(--teal-bright); text-transform: uppercase; }
+.syn .tut-card .tc-body { font-size: 15px; line-height: 1.6; margin: 12px 0 20px; }
+.syn .tut-card .tc-btns { display: flex; justify-content: space-between; align-items: center; }
+.syn .tut-card .tc-skip { font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--titanium-pearl); }
+.syn .tut-card .tc-next { padding: 9px 22px; border: 1px solid var(--teal); border-radius: 5px; background: rgba(11, 69, 70, 0.7); color: var(--teal-glow); font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; }
+.syn .tut-arrow { position: absolute; color: var(--teal-bright); font-size: 30px; transition: all 0.35s ease; pointer-events: none; }
+
+/* T5 · schema stats strip */
+.syn #schema-stats { display: flex; align-items: stretch; gap: 0; padding: 10px 24px; }
+.syn #schema-stats .ss { flex: 1; padding: 0 22px; display: flex; flex-direction: column; justify-content: center; gap: 3px; }
+.syn #schema-stats .ss + .ss { border-left: 1px solid var(--border-soft); }
+.syn #schema-stats .ss .ssv { font-size: 28px; font-weight: 600; line-height: 1; color: var(--amber); font-variant-numeric: tabular-nums; }
+.syn #schema-stats .ss .ssl { font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--titanium-pearl); line-height: 1.35; }
+.syn #schema-stats .ss .ssn { font-size: 12px; color: var(--titanium-pearl); opacity: 0.65; font-style: italic; }
+.syn #schema-stats .ss.never .ssv { color: var(--teal-bright); }
+/* Fix 3: preview ends cleanly (character-budgeted in the component); the
+   expander reveals the full list in place, scrollable, collapsible */
+.syn #schema-stats .ss .names { font-size: 12px; line-height: 1.5; color: var(--titanium-pearl); opacity: 0.75; }
+.syn #schema-stats .ss .names-full { max-height: 48px; overflow-y: auto; padding-right: 6px; }
+.syn #schema-stats .ss .names-full::-webkit-scrollbar { width: 6px; }
+.syn #schema-stats .ss .names-full::-webkit-scrollbar-thumb { background: rgba(80, 85, 86, 0.5); border-radius: 3px; }
+.syn .names-more { font-size: 12px; color: var(--teal-bright); letter-spacing: 0.04em; padding: 1px 3px; border-radius: 4px; white-space: nowrap; }
+.syn .names-more:hover { color: var(--teal-glow); }
+
+/* ── VIEW 3 ── */
+.syn #view3 { padding: 16px 34px 18px; display: grid; grid-template-rows: auto minmax(0, 1.16fr) minmax(0, 1fr) auto; gap: 13px; height: 100%; }
+.syn .v3-top { display: grid; grid-template-columns: 1fr 0.36fr 1fr; gap: 18px; align-items: stretch; min-height: 0; }
+.syn .offer-panel { border: 1px solid rgba(44, 224, 210, 0.4); border-radius: 12px; background: linear-gradient(180deg, rgba(10, 38, 38, 0.5), rgba(14, 20, 21, 0.6)); padding: 20px 26px; display: flex; flex-direction: column; justify-content: space-between; min-height: 0; }
+.syn .chose-panel { border: 1px solid rgba(60, 207, 207, 0.4); border-radius: 12px; background: linear-gradient(180deg, rgba(8, 40, 42, 0.42), rgba(14, 20, 21, 0.6)); padding: 20px 26px; display: flex; flex-direction: column; justify-content: space-between; min-height: 0; }
+.syn .fig-row { display: flex; gap: 8px; }
+.syn .fig-row.divided .fig + .fig { border-left: 1px solid rgba(44, 224, 210, 0.28); }
+.syn .fig-row.divided-t .fig + .fig { border-left: 1px solid rgba(60, 207, 207, 0.28); }
+.syn .fig { flex: 1; text-align: center; padding: 0 6px; }
+/* Part A floor: labels ≥ 12px, count captions readable */
+.syn .fig .fn { font-size: 12px; font-style: italic; color: var(--titanium-pearl); opacity: 0.72; margin-top: 3px; font-variant-numeric: tabular-nums; }
+.syn .fig .fv { font-size: 30px; font-weight: 600; line-height: 1.05; }
+.syn .fig .fl { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-text-muted); margin-top: 6px; line-height: 1.35; }
+.syn .offer-panel .fig .fl, .syn .chose-panel .fig .fl { color: var(--titanium-pearl); }
+.syn .dist-cell { flex: 1; border: 1px solid rgba(44, 224, 210, 0.32); border-radius: 8px; padding: 18px 10px 15px; text-align: center; position: relative; overflow: hidden; background: linear-gradient(180deg, rgba(44, 224, 210, 0.05), rgba(44, 224, 210, 0.14)); }
+.syn .dist-cell .dband { font-size: 13px; color: var(--titanium-pearl); letter-spacing: 0.03em; }
+.syn .dist-cell .dpct { font-size: 32px; font-weight: 600; margin: 11px 0 4px; color: var(--titanium-pearl); }
+/* Part A floor: 12px, raised colour — sits on the busy teal-tinted cells */
+.syn .dist-cell .dcnt { font-size: 12px; color: var(--syn-text-raised); letter-spacing: 0.08em; }
+.syn .gap-mid { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 22px; }
+.syn .gap-mid .gt { color: var(--amber); font-size: 22px; letter-spacing: 0.2em; }
+.syn .gap-mid .gl { color: var(--titanium-pearl); font-size: 15px; line-height: 1.6; letter-spacing: 0.06em; }
+.syn .v3-bottom { display: grid; grid-template-columns: 2.4fr 1fr 1fr; gap: 16px; min-height: 0; }
+.syn .syn-line-chart { flex: 1; margin-top: 8px; display: flex; flex-direction: column; min-height: 0; }
+.syn .ex-card { border-radius: 10px; padding: 18px 16px; display: flex; flex-direction: column; align-items: center; text-align: center; justify-content: space-evenly; }
+.syn .obs-row { display: flex; gap: 14px; align-items: flex-start; }
+.syn .obs-row .oi { width: 44px; height: 44px; flex: 0 0 auto; border: 1.5px solid; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+.syn .obs-row .oi svg { width: 22px; height: 22px; fill: none; stroke-width: 2.4; }
+.syn .obs-row .ov { font-size: 18px; font-weight: 600; letter-spacing: 0.04em; }
+.syn .obs-row .od { font-size: 14px; line-height: 1.5; color: var(--color-text-muted); margin-top: 4px; } /* Part A floor: never dimmer than muted */
+
+/* ── VIEW 4 ── */
+.syn #view4 { overflow: hidden; }
+.syn #v4-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -52%); text-align: center; z-index: 6; width: 1100px; }
+.syn #v4-center .v4-h { font-size: 68px; letter-spacing: 0.05em; line-height: 1.02; white-space: nowrap; }
+.syn #v4-center .v4-sub { font-size: 22px; letter-spacing: 0.26em; line-height: 1.85; margin-top: 22px; color: var(--titanium-pearl); }
+.syn .v4-stat { position: absolute; z-index: 7; width: 340px; --cc: var(--teal-bright); --frame: linear-gradient(0deg, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0)); padding: 20px 24px; border-radius: 16px; background: rgba(12, 15, 16, 0.5); backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05); }
+.syn .v4-stat::before { content: ""; position: absolute; inset: 0; border-radius: 16px; padding: 1.5px; background: var(--frame); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none; }
+.syn .v4-stat .sv { font-size: 62px; font-weight: 600; line-height: 1; color: var(--cc); }
+.syn .v4-stat .sd { font-size: 15px; letter-spacing: 0.09em; text-transform: uppercase; line-height: 1.5; margin-top: 8px; color: var(--titanium-pearl); }
+.syn .v4-stat .sc { font-size: 13px; font-style: italic; color: var(--cc); opacity: 0.85; margin-top: 12px; letter-spacing: 0.02em; }
+.syn #v4-leaders { position: absolute; inset: 0; z-index: 5; pointer-events: none; }
+.syn #v4-trail { position: absolute; right: 0; bottom: 0; width: 760px; height: 420px; z-index: 4; pointer-events: none; opacity: 0.9; }
+.syn #v4-note { position: absolute; left: 50%; bottom: 172px; transform: translateX(-50%); text-align: center; color: var(--titanium-pearl); font-size: 20px; line-height: 1.7; z-index: 6; opacity: 0.9; }
+.syn #v4-btns { position: absolute; left: 50%; bottom: 82px; transform: translateX(-50%); display: flex; gap: 26px; z-index: 6; }
+.syn #v4-btns .cta-out { white-space: nowrap; }
+/* Part A floor: the quiet restart stays quiet, but its label must read */
+.syn #v4-restart { border-color: var(--smoked-titanium); color: var(--color-text-muted); }
+.syn #v4-restart svg { stroke: var(--color-text-muted); }
+.syn #v4-restart:hover { border-color: var(--titanium-pearl); color: var(--titanium-pearl); background: rgba(80, 85, 86, 0.18); box-shadow: none; }
+.syn #v4-restart:hover svg { stroke: var(--titanium-pearl); }
+
+/* ── platform additions: invite, loading, empty (not in the prototype) ── */
+.syn .syn-play-invite {
+  margin-top: 16px;
+  padding: 10px 0 2px;
+  border-top: 1px solid var(--border-soft);
+  color: var(--teal-bright);
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  line-height: 1.5;
+  text-align: left;
+  min-height: 44px;
+  transition: color 0.2s;
+}
+.syn .syn-play-invite:hover { color: var(--teal-glow); }
+
+.syn .syn-wait { display: flex; flex-direction: column; align-items: center; gap: 18px; }
+.syn .syn-wait__bar { width: 220px; height: 2px; background: rgba(26, 135, 135, 0.25); border-radius: 2px; overflow: hidden; }
+.syn .syn-wait__bar span { display: block; width: 40%; height: 100%; background: var(--teal-bright); border-radius: 2px; animation: synSweep 1.6s cubic-bezier(0.16, 1, 0.3, 1) infinite; }
+@keyframes synSweep { from { transform: translateX(-100%); } to { transform: translateX(650%); } }
+@media (prefers-reduced-motion: reduce) { .syn .syn-wait__bar span { animation: none; width: 100%; opacity: 0.5; } }
+
+.syn .syn-empty { display: flex; flex-direction: column; align-items: center; gap: 22px; text-align: center; max-width: 640px; }
+.syn .syn-empty__title { font-size: 34px; letter-spacing: 0.08em; color: var(--titanium-pearl); }
+.syn .syn-empty__line { font-size: 15px; line-height: 1.7; letter-spacing: 0.03em; max-width: 46ch; }

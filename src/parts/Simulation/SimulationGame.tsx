@@ -83,6 +83,9 @@ interface Visit {
 interface Session {
   primaryChoices: ("shop" | "bite" | "restroom" | "outside")[];
   visits: Visit[];
+  /** Floors the player actually switched to (entry + toggles), first-visit
+   *  order, deduped. Memory-only — never written to the database. */
+  floorsVisited: (1 | 2)[];
   restroomUsed: boolean;
   outsideDestination: string | null;
   total: number;
@@ -91,11 +94,40 @@ interface Session {
 const freshSession = (): Session => ({
   primaryChoices: [],
   visits: [],
+  floorsVisited: [],
   restroomUsed: false,
   outsideDestination: null,
   total: 0,
   endReason: null,
 });
+
+/* ---------------------------------------------------------------------------
+ * CompletedSession — the in-memory round handed to onSessionComplete for the
+ * Synthesis individual view (View 1). The database stores four unordered
+ * booleans, so activity ORDER only exists here. Vocabulary matches the
+ * synthesis prototype's `individualSession` consumers exactly:
+ *   activities  shop | grabABite | restroom | goOutside   (game 'bite'/'outside' mapped)
+ *   decision    entry | typical | high | wontShopHere     (from low/mid/high/wouldnt_shop)
+ *   endedBy     timerExpired | wentOutside
+ *   outsideDestination  camelCase destination key (the prototype looks
+ *                       destinations up by key), or null
+ * ------------------------------------------------------------------------- */
+export interface CompletedSessionPathStep {
+  storeSlug: string;
+  floor: 1 | 2;
+  decision: "entry" | "typical" | "high" | "wontShopHere";
+  pricePaid: number;
+}
+export interface CompletedSession {
+  primaryChoices: string[]; // ordered by first selection (push order)
+  floorsVisited: (1 | 2)[];
+  restroomUsed: boolean;
+  endedBy: "timerExpired" | "wentOutside";
+  outsideDestination: string | null;
+  path: CompletedSessionPathStep[];
+}
+const ACTIVITY_KEY = { shop: "shop", bite: "grabABite", restroom: "restroom", outside: "goOutside" } as const;
+const DECISION_KEY = { low: "entry", mid: "typical", high: "high", wouldnt_shop: "wontShopHere" } as const;
 
 const TUT: { target: TutTarget; text: string }[] = [
   { target: "refTimer", text: "This is your train. When it reaches the end of the track, your time's up. It doesn't stop, pause, or wait." },
@@ -107,6 +139,14 @@ const TUT: { target: TutTarget; text: string }[] = [
 type TutTarget = "refTimer" | "refChoices" | "refShop" | "refRestroom" | "refOutside";
 
 const DEST = ["The Oculus Plaza", "The 9/11 Memorial", "Brookfield Place", "One World Trade Center"];
+/** Stored destination strings → the synthesis prototype's camelCase keys
+ *  (note: "The 9/11 Memorial" is `memorialPools` — not a mechanical rename). */
+const DEST_KEY: Record<string, string> = {
+  "The Oculus Plaza": "oculusPlaza",
+  "The 9/11 Memorial": "memorialPools",
+  "Brookfield Place": "brookfieldPlace",
+  "One World Trade Center": "oneWTCLobby",
+};
 
 const DOTS = [8.5, 25, 41.5, 58, 74.5, 91];
 
@@ -257,9 +297,20 @@ interface SimulationGameProps {
   onRoundActiveChange?: (active: boolean) => void;
   /** End screen's CONTINUE TO SYNTHESIS. */
   onExitToSynthesis?: () => void;
+  /**
+   * Fired in endGame() ALONGSIDE the Supabase save (never instead of it) with
+   * the in-memory round — order-preserving, unlike the stored booleans.
+   * Abandoned rounds never fire it.
+   */
+  onSessionComplete?: (session: CompletedSession) => void;
 }
 
-export default function SimulationGame({ entry = "direct", onRoundActiveChange, onExitToSynthesis }: SimulationGameProps) {
+export default function SimulationGame({
+  entry = "direct",
+  onRoundActiveChange,
+  onExitToSynthesis,
+  onSessionComplete,
+}: SimulationGameProps) {
   const [gs, setGS] = useState<GameState>(initialState);
   const [, setBump] = useState(0); // the mockup's forceUpdate()
   const [underlay, setUnderlay] = useState(entry === "handoff");
@@ -300,6 +351,8 @@ export default function SimulationGame({ entry = "direct", onRoundActiveChange, 
   gsRef.current = gs;
   const roundCbRef = useRef(onRoundActiveChange);
   roundCbRef.current = onRoundActiveChange;
+  const sessionCompleteRef = useRef(onSessionComplete);
+  sessionCompleteRef.current = onSessionComplete;
 
   const duration = () => (devFastRef.current ? 30 : Math.max(10, DURATION_SECONDS));
 
@@ -366,6 +419,27 @@ export default function SimulationGame({ entry = "direct", onRoundActiveChange, 
     void saveSession(payload).then((result) => console.log("[Oculus] saveSession:", result));
   };
 
+  /** The in-memory round in the synthesis prototype's individualSession
+   *  vocabulary — the ordered truth the database cannot hold. */
+  const buildCompletedSession = (reason: "timer" | "outside"): CompletedSession => {
+    const s = sessionRef.current;
+    return {
+      primaryChoices: s.primaryChoices.map((a) => ACTIVITY_KEY[a]),
+      floorsVisited: [...s.floorsVisited],
+      restroomUsed: s.restroomUsed,
+      endedBy: reason === "outside" ? "wentOutside" : "timerExpired",
+      outsideDestination:
+        s.outsideDestination === null ? null : (DEST_KEY[s.outsideDestination] ?? s.outsideDestination),
+      path: s.visits.map((v) => ({
+        // by (floor, name), exactly as the save path — Apple is per-floor
+        storeSlug: storeSlug(v.floor, v.name) ?? v.name,
+        floor: v.floor,
+        decision: DECISION_KEY[v.choice],
+        pricePaid: v.value,
+      })),
+    };
+  };
+
   const endGame = (reason: "timer" | "outside") => {
     stopTimer();
     clearRestroomTimer();
@@ -375,6 +449,7 @@ export default function SimulationGame({ entry = "direct", onRoundActiveChange, 
     sessionRef.current.endReason = reason;
     logSession();
     submitSession(reason, trueElapsed);
+    sessionCompleteRef.current?.(buildCompletedSession(reason)); // alongside the save, never instead
     setGS((s) => ({ ...s, screen: "end", started: false, card: null, restroomPop: false, elapsed: duration(), endPhase: 0 }));
     runEndSequence();
   };
@@ -501,9 +576,17 @@ export default function SimulationGame({ entry = "direct", onRoundActiveChange, 
   };
   const onTutSkip = () => onPlay();
 
+  /** Floors the player actually switched to — recorded on entry to the floor
+   *  view and on each toggle; memory-only, never part of the DB payload. */
+  const recordFloorVisit = (f: 1 | 2) => {
+    const fv = sessionRef.current.floorsVisited;
+    if (!fv.includes(f)) fv.push(f);
+  };
+
   const goCategory = (cat: "shop" | "bite") => {
     if (!sessionRef.current.primaryChoices.includes(cat)) sessionRef.current.primaryChoices.push(cat);
     logSession();
+    recordFloorVisit(gsRef.current.floor); // entering the floor view on the current floor
     setGS((s) => ({ ...s, screen: "floor", category: cat }));
   };
   const onShop = () => {
@@ -550,8 +633,14 @@ export default function SimulationGame({ entry = "direct", onRoundActiveChange, 
   };
 
   const onMenu = () => setGS((s) => ({ ...s, screen: "choice", card: null }));
-  const onFloor1 = () => setGS((s) => ({ ...s, floor: 1 }));
-  const onFloor2 = () => setGS((s) => ({ ...s, floor: 2 }));
+  const onFloor1 = () => {
+    recordFloorVisit(1);
+    setGS((s) => ({ ...s, floor: 1 }));
+  };
+  const onFloor2 = () => {
+    recordFloorVisit(2);
+    setGS((s) => ({ ...s, floor: 2 }));
+  };
   const openStore = (store: GameStore) => setGS((s) => ({ ...s, screen: "card", card: store }));
   const choosePrice = (price: GamePrice, tierIndex: number) => {
     const st = gsRef.current.card;

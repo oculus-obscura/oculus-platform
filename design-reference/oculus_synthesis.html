@@ -1,0 +1,1699 @@
+<!DOCTYPE html>
+<!--
+════════════════════════════════════════════════════════════════════════════
+  OCULUS OBSCURA — "SYNTHESIS" OUTPUT SEQUENCE
+  Four full-screen views (1920×1080) — Individual Result, Synthesis,
+  The Gap, Ending. Single-file prototype: HTML + CSS + vanilla JS, no build.
+────────────────────────────────────────────────────────────────────────────
+  HOW TO CONNECT REAL DATA
+  1. Replace the SESSION_DATA object wholesale with data from the backend,
+     keeping every key name identical. All percentages, rankings, bar
+     lengths, donut arcs and figures are derived from the raw counts at
+     runtime — nothing is hard-coded, so swapping the object updates every
+     view automatically. Any field left null renders as "—".
+  2. Set DEV_MODE = false. This hides the PREVIEW STATE control on View 1.
+  3. Delete the block marked <!-- DEV ONLY — safe to delete --> … <!-- /DEV ONLY -->.
+════════════════════════════════════════════════════════════════════════════
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Oculus Obscura — Synthesis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Michroma&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --space-black:#0A0A0A;
+  --smoked-titanium:#505556;
+  --titanium-pearl:#E8E8E3;
+  --teal:#1A8787;
+  --teal-bright:#3CCFCF;
+  --teal-glow:#8DE8E0;
+  --teal-deep:#0B4546;
+  --amber:#FFB020;
+  --plum:#E24FD1;
+  --panel:rgba(14,20,21,0.66);
+  --panel-2:rgba(18,26,27,0.8);
+  --border:rgba(80,85,86,0.42);
+  --border-soft:rgba(80,85,86,0.24);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--space-black);overflow:hidden}
+body{
+  font-family:'Space Grotesk',sans-serif;
+  color:var(--titanium-pearl);
+  font-variant-numeric:tabular-nums;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:var(--teal-bright);text-decoration:none}
+a:hover{color:var(--teal-glow)}
+.mich{font-family:'Michroma',sans-serif;font-weight:400}
+.num{font-variant-numeric:tabular-nums;font-weight:500}
+button{font-family:inherit;color:inherit;cursor:pointer;background:none;border:none}
+
+/* ── Scaling stage ─────────────────────────────────────────── */
+#screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--space-black)}
+#stage{width:1920px;height:1080px;flex:none;position:relative;transform-origin:center center;overflow:hidden;background:var(--space-black)}
+#bg{position:absolute;inset:0;background:#050708 center/cover no-repeat;background-image:url('OCULUS INSIDE  BACKGROUND PHOTO.jpg');opacity:0.26;z-index:0}
+#bg::after{content:"";position:absolute;inset:0;background:radial-gradient(120% 80% at 50% 0%,rgba(11,69,70,0.18),transparent 60%)}
+
+/* ── Views ─────────────────────────────────────────────────── */
+.view{position:absolute;inset:0;z-index:2;opacity:0;pointer-events:none;transition:opacity .55s ease}
+.view.active{opacity:1;pointer-events:auto}
+@media (prefers-reduced-motion:reduce){.view{transition:none}}
+
+/* ── Shared panel ──────────────────────────────────────────── */
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:12px;backdrop-filter:blur(3px)}
+.panel-t{color:var(--teal-bright);font-size:15px;letter-spacing:.18em;font-weight:600;text-transform:uppercase}
+.badge-n{display:inline-flex;align-items:center;justify-content:center;width:34px;height:30px;border:1.5px solid var(--teal);border-radius:5px;color:var(--teal-bright);font-size:15px;font-weight:600;letter-spacing:.04em}
+.lbl{color:var(--titanium-pearl);text-transform:uppercase;letter-spacing:.14em;font-size:12px;font-weight:500}
+.muted{color:var(--titanium-pearl)}
+.hair{height:1px;background:var(--border-soft);border:0}
+
+/* focus */
+:focus-visible{outline:2px solid var(--teal-bright);outline-offset:2px;border-radius:4px}
+
+/* pills */
+.pill{display:inline-flex;align-items:center;padding:5px 11px;border-radius:4px;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
+.pill.entry{background:rgba(11,69,70,0.85);color:var(--teal-glow);border:1px solid var(--teal)}
+.pill.typical{background:rgba(11,69,70,0.5);color:var(--teal-bright);border:1px solid rgba(26,135,135,.6)}
+.pill.high{background:rgba(80,85,86,0.28);color:var(--titanium-pearl);border:1px solid var(--smoked-titanium)}
+.pill.reject{background:rgba(255,176,32,0.12);color:var(--amber);border:1px solid rgba(255,176,32,.55)}
+.tag{display:inline-block;padding:3px 8px;border-radius:3px;font-size:12px;font-weight:600;letter-spacing:.12em}
+.tag.retail{color:var(--teal-bright);border:1px solid rgba(60,207,207,.4)}
+.tag.food{color:var(--titanium-pearl);border:1px solid var(--smoked-titanium)}
+
+/* nav arrows */
+.nav-arrow{position:absolute;top:50%;transform:translateY(-50%);width:64px;height:64px;border:1.5px solid var(--teal);border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(10,20,21,.72);box-shadow:0 0 22px rgba(60,207,207,.24);z-index:40;transition:border-color .2s,background .2s,box-shadow .2s}
+.nav-arrow:hover{border-color:var(--teal-bright);background:rgba(11,69,70,.65);box-shadow:0 0 34px rgba(60,207,207,.5)}
+.nav-arrow svg{width:28px;height:28px;stroke:var(--teal-bright);fill:none;stroke-width:2.4}
+.nav-arrow.left{left:26px}.nav-arrow.right{right:26px}
+
+/* big CTA */
+@keyframes ctaBreath{0%,100%{box-shadow:0 0 16px rgba(60,207,207,.22)}50%{box-shadow:0 0 32px rgba(60,207,207,.52)}}
+.cta{display:inline-flex;align-items:center;gap:16px;padding:0 40px;height:66px;background:var(--teal);border:1.5px solid var(--teal-bright);border-radius:8px;color:var(--titanium-pearl);font-size:19px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;transition:background .2s,box-shadow .2s,color .2s;animation:ctaBreath 3.2s ease-in-out infinite}
+.cta:hover{background:var(--teal-bright);color:#042018}
+.cta-arrow{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2;transition:transform .25s}
+.cta:hover .cta-arrow{transform:translateX(7px)}
+@media (prefers-reduced-motion:reduce){.cta{animation:none}}
+.cta-out{display:inline-flex;align-items:center;gap:18px;padding:0 34px;height:58px;border:1px solid var(--teal);border-radius:6px;color:var(--teal-glow);font-size:16px;letter-spacing:.18em;text-transform:uppercase;background:rgba(10,14,15,.4);transition:background .2s,box-shadow .2s}
+.cta-out:hover{background:rgba(11,69,70,.55);box-shadow:0 0 22px rgba(60,207,207,.22)}
+.cta-out svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.6}
+
+/* ── VIEW 1 ────────────────────────────────────────────────── */
+#view1{padding:34px 44px}
+/* View-1 typography per style guide: Michroma for titles, labels, headings, button */
+#view1 .panel-t,#view1 .lbl,#view1 .data-table th,#view1 .path-cap,#view1 .path-floor,#view1 .cta{font-family:'Michroma',sans-serif;font-weight:400}
+#view1 .lbl{letter-spacing:.1em}
+#view1 .data-table th{letter-spacing:.05em}
+#view1 .stat-cell .lbl{font-size:12px;letter-spacing:.04em;line-height:1.3}
+#view1 .cta{font-weight:400;letter-spacing:.14em}
+.v1-grid{display:grid;grid-template-columns:472px 1fr;grid-template-rows:auto 1.15fr 1.05fr auto;gap:16px;height:100%}
+.stat-cell{border:1px solid var(--border);border-radius:10px;background:var(--panel);padding:22px 24px;display:flex;flex-direction:column;justify-content:space-between}
+.stat-cell .top{display:flex;align-items:center;gap:16px}
+.stat-cell .big{font-size:52px;font-weight:600;line-height:1}
+.stat-cell .ico{width:34px;height:34px;flex:0 0 auto}
+.stat-cell .ico svg{width:34px;height:34px;stroke:var(--teal-bright);fill:none;stroke-width:1.6}
+.data-table{width:100%;border-collapse:collapse}
+.data-table th{color:var(--titanium-pearl);text-transform:uppercase;letter-spacing:.12em;font-size:12px;font-weight:600;text-align:left;padding:0 16px 14px;border-bottom:1px solid var(--border-soft)}
+.data-table td{padding:18px 16px;border-bottom:1px solid var(--border-soft);font-size:17px}
+.store-name{font-weight:500;letter-spacing:.14em;text-transform:uppercase;font-size:16px}
+.empty-line{color:var(--titanium-pearl);font-size:16px;text-align:center;padding:34px 20px;line-height:1.6}
+
+/* path — adaptive: cards dominate, one continuous line, evenly distributed, one row */
+.path-row{display:flex;align-items:flex-start;justify-content:space-between;gap:0;width:100%;padding:2px 6px;position:relative}
+.path-row::before{content:"";position:absolute;left:20px;right:20px;top:50%;border-top:2px dotted rgba(60,207,207,.5);z-index:0}
+.path-node{position:relative;z-index:1;flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:9px;min-width:0}
+.path-card{width:270px;min-height:196px;border:1px solid var(--border);border-radius:10px;background:rgba(18,26,27,0.94);padding:22px 18px;display:flex;flex-direction:column;align-items:center;justify-content:space-between;gap:10px;position:relative}
+.path-card.mini{width:200px;min-height:196px;justify-content:center;gap:18px}
+/* node-count adaptive sizing */
+.path-row.n3 .path-card{width:360px}.path-row.n3 .path-card.mini{width:300px}
+.path-row.n4 .path-card{width:330px}.path-row.n4 .path-card.mini{width:250px}
+.path-row.n5 .path-card{width:300px}.path-row.n5 .path-card.mini{width:225px}
+.path-row.n6 .path-card{width:262px;padding:18px 16px;min-height:172px}.path-row.n6 .path-card.mini{width:196px;min-height:172px;padding:18px 16px}
+.path-row.n6 .store-name{font-size:17px !important}
+.path-row.n6 .path-card .num{font-size:19px !important}
+#view1 .path-card .pill{padding:8px 18px;font-size:14px}
+.path-ico svg{width:50px;height:50px}
+.path-badge{position:absolute;top:-12px;right:-12px;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;z-index:2}
+.path-badge.ok{background:var(--teal);}
+.path-badge.no{background:var(--amber);}
+.path-badge svg{width:18px;height:18px;stroke:#06201f;fill:none;stroke-width:2.6}
+.path-cap{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--titanium-pearl);text-align:center}
+.path-floor{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--titanium-pearl)}
+.connector{display:none}
+.path-ico svg{stroke:var(--teal-bright);fill:none;stroke-width:1.5}
+
+/* preview state */
+#preview-ctl{position:absolute;top:30px;right:36px;z-index:50;display:flex;align-items:center;gap:12px;opacity:.62}
+#preview-ctl:hover{opacity:1}
+#preview-ctl .lbl{font-size:12px}
+#preview-ctl select{background:rgba(10,14,15,.85);border:1px solid var(--border);color:var(--titanium-pearl);font-family:inherit;font-size:12px;letter-spacing:.08em;padding:7px 10px;border-radius:5px}
+
+/* ── VIEW 2 ────────────────────────────────────────────────── */
+#view2{padding:24px 30px;display:grid;grid-template-columns:498px 1fr;grid-template-rows:minmax(0,1fr) minmax(0,0.62fr) auto;gap:16px}
+#rail{grid-column:1;grid-row:1;display:flex;flex-direction:column;gap:16px;min-height:0}
+#analysis-row{grid-column:1 / span 2;grid-row:2;display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;min-height:0}
+#analysis-row .v2-panel{min-height:0}
+#map-wrap{position:relative;border:1px solid var(--border);border-radius:12px;overflow:hidden;min-height:0;background:#060809;grid-column:2;grid-row:1}
+#rank-panel{flex:1;min-height:0;display:flex;flex-direction:column;padding:20px 22px}
+.rank-scroll{overflow-y:auto;flex:1;margin-top:6px}
+.rank-scroll::-webkit-scrollbar{width:7px}
+.rank-scroll::-webkit-scrollbar-thumb{background:rgba(80,85,86,.5);border-radius:4px}
+.rank-tbl{width:100%;border-collapse:collapse;font-size:13px}
+.rank-tbl th{position:sticky;top:0;background:#0b1112;color:var(--titanium-pearl);text-transform:uppercase;letter-spacing:.06em;font-size:12px;font-weight:600;text-align:left;padding:8px 8px;border-bottom:1px solid var(--border);cursor:pointer;user-select:none;white-space:nowrap}
+.rank-tbl th:hover{color:var(--teal-bright)}
+.rank-tbl th .arr{opacity:.5;font-size:12px}
+.rank-tbl th.sorted{color:var(--teal-bright)}
+.rank-tbl td{padding:9px 8px;border-bottom:1px solid var(--border-soft);white-space:nowrap}
+.rank-tbl tr.top6 td{background:rgba(11,69,70,.16)}
+.rank-tbl td.metric-active{background:rgba(26,135,135,.28);color:var(--teal-glow);font-weight:600}
+.rank-tbl .er-cell{color:var(--teal-glow);font-weight:600}
+.map-controls{position:absolute;top:16px;left:20px;right:20px;z-index:12;display:flex;justify-content:space-between;align-items:flex-start;gap:20px;pointer-events:none}
+.map-controls>*{pointer-events:auto}
+.seg{display:inline-flex;border:1px solid var(--border);border-radius:6px;overflow:hidden;background:rgba(6,10,11,.7)}
+.seg button{padding:8px 14px;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--titanium-pearl);border-right:1px solid var(--border-soft)}
+.seg button:last-child{border-right:0}
+.seg button.on{background:rgba(11,69,70,.85);color:var(--teal-glow)}
+.map-ico-info{width:26px;height:26px;border:1px solid var(--border);border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:var(--teal-bright);font-size:13px;position:relative}
+.map-ico-info .tip{display:none;position:absolute;top:32px;right:0;width:230px;background:rgba(6,10,11,.96);border:1px solid var(--teal);border-radius:6px;padding:10px 12px;font-size:12px;line-height:1.5;color:var(--titanium-pearl);letter-spacing:.02em;text-transform:none;z-index:30}
+.map-ico-info:hover .tip,.map-ico-info:focus .tip{display:block}
+#map-points{position:absolute;inset:0;z-index:8}
+.mpt{position:absolute;transform:translate(-50%,-50%);cursor:pointer}
+.mpt .core{border-radius:50%;background:radial-gradient(circle,var(--teal-glow) 0%,var(--teal-bright) 42%,rgba(26,135,135,.15) 70%,transparent 72%);box-shadow:0 0 22px rgba(60,207,207,.6);border:2px solid var(--teal-bright)}
+.mpt .ring{position:absolute;inset:0;border-radius:50%;border:1.5px solid var(--teal-bright);animation:pulse 3.4s ease-out infinite}
+@keyframes pulse{0%{transform:scale(1);opacity:.55}70%{transform:scale(2.1);opacity:0}100%{opacity:0}}
+@media (prefers-reduced-motion:reduce){.mpt .ring{animation:none;opacity:0}}
+.mpt-label{position:absolute;left:50%;bottom:calc(100% + 12px);transform:translateX(-50%);background:rgba(6,10,11,.9);border:1px solid var(--border);border-radius:5px;padding:6px 11px;text-align:center;white-space:nowrap}
+.mpt-label .n{font-size:12px;letter-spacing:.12em;color:var(--titanium-pearl)}
+.mpt-label .v{font-size:16px;font-weight:600;color:var(--teal-glow)}
+#map-legend{position:absolute;left:20px;bottom:16px;z-index:12;background:rgba(6,10,11,.72);border:1px solid var(--border);border-radius:8px;padding:14px 16px}
+#map-legend .lg-row{display:flex;align-items:center;gap:10px;margin-top:7px;font-size:12px;color:var(--titanium-pearl)}
+#map-legend .dot{border-radius:50%;background:var(--teal-bright)}
+#map-caption{position:absolute;right:20px;bottom:18px;z-index:12;color:var(--titanium-pearl);font-size:13px;font-style:italic}
+#map-tooltip{position:absolute;z-index:30;display:none;min-width:210px;background:rgba(6,10,11,.97);border:1px solid var(--teal);border-radius:8px;padding:14px 16px;pointer-events:none}
+#map-tooltip .tt-n{font-weight:600;letter-spacing:.12em;text-transform:uppercase;font-size:14px;margin-bottom:8px}
+#map-tooltip .tt-r{display:flex;justify-content:space-between;gap:20px;font-size:12px;padding:3px 0;color:var(--titanium-pearl)}
+#map-tooltip .tt-r b{color:var(--titanium-pearl);font-weight:500}
+
+/* lower band panels */
+.v2-panel{padding:18px 22px;display:flex;flex-direction:column}
+.choice-row{display:grid;grid-template-columns:34px 116px 1fr 44px 60px;align-items:center;gap:12px;margin-top:14px}
+.choice-row .ci svg{width:26px;height:26px;stroke:var(--teal-bright);fill:none;stroke-width:1.8}
+.choice-row .cn{font-size:14px;letter-spacing:.1em;text-transform:uppercase}
+.bar-track{height:14px;background:rgba(80,85,86,.22);border-radius:3px;overflow:hidden}
+.bar-fill{height:100%;background:linear-gradient(90deg,var(--teal-deep),var(--teal));border-radius:3px;transition:width .8s ease}
+.choice-row .cc{font-size:18px;font-weight:600;text-align:right}
+.choice-row .cp{font-size:13px;color:var(--titanium-pearl);text-align:right}
+.donut-legend .dl-row{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px}
+.donut-legend .sw{width:12px;height:12px;border-radius:50%;margin-top:3px;flex:0 0 auto}
+.donut-legend .dt{font-size:12px;letter-spacing:.08em;text-transform:uppercase;font-weight:600}
+.donut-legend .dd{font-size:12px;color:var(--titanium-pearl)}
+.dest-row{display:grid;grid-template-columns:26px 150px 1fr 58px 40px;align-items:center;gap:10px;margin-top:11px;font-size:12px}
+.dest-row .di svg{width:22px;height:22px;stroke:var(--teal-bright);fill:none;stroke-width:1.5}
+
+/* takeaways */
+#takeaways{grid-column:1 / span 2;grid-row:3;display:grid;grid-template-columns:auto repeat(4,1fr);gap:28px;align-items:center;padding:26px 34px}
+.tk{display:flex;align-items:center;gap:16px}
+.tk .tkico{width:58px;height:58px;flex:0 0 auto;border:1.5px solid var(--teal-bright);border-radius:50%;display:flex;align-items:center;justify-content:center}
+.tk .tkico svg{width:28px;height:28px;stroke:var(--teal-bright);fill:none;stroke-width:2.6}
+.tk .tkt{font-size:15px;line-height:1.55;color:var(--titanium-pearl)}
+.tk .tkt b{color:var(--teal-glow);font-weight:600}
+
+/* tutorial */
+#tutorial{position:absolute;inset:0;z-index:60;display:none}
+#tutorial.on{display:block}
+#tut-mask{position:absolute;inset:0;pointer-events:auto}
+#tut-hole{position:absolute;border:2px solid var(--teal-bright);border-radius:10px;box-shadow:0 0 0 9999px rgba(5,7,8,.82);transition:all .35s ease;pointer-events:none}
+#tut-card{position:absolute;width:340px;background:rgba(8,12,13,.98);border:1px solid var(--teal);border-radius:10px;padding:22px 24px;transition:all .35s ease}
+#tut-card .tc-step{font-size:12px;letter-spacing:.16em;color:var(--teal-bright);text-transform:uppercase}
+#tut-card .tc-body{font-size:15px;line-height:1.6;margin:12px 0 20px}
+#tut-card .tc-btns{display:flex;justify-content:space-between;align-items:center}
+#tut-card .tc-skip{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--titanium-pearl)}
+#tut-card .tc-next{padding:9px 22px;border:1px solid var(--teal);border-radius:5px;background:rgba(11,69,70,.7);color:var(--teal-glow);font-size:12px;letter-spacing:.12em;text-transform:uppercase}
+#tut-arrow{position:absolute;color:var(--teal-bright);font-size:30px;transition:all .35s ease;pointer-events:none}
+
+#schema-stats{display:flex;align-items:stretch;gap:0;padding:14px 24px}
+#schema-stats .ss{flex:1;padding:0 22px;display:flex;flex-direction:column;justify-content:center;gap:4px}
+#schema-stats .ss + .ss{border-left:1px solid var(--border-soft)}
+#schema-stats .ss .ssv{font-size:34px;font-weight:600;line-height:1;color:var(--amber);font-variant-numeric:tabular-nums}
+#schema-stats .ss .ssl{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--titanium-pearl);line-height:1.35}
+#schema-stats .ss .ssn{font-size:12px;color:var(--titanium-pearl);opacity:.65;font-style:italic}
+#schema-stats .ss.never .ssv{color:var(--teal-bright)}
+#schema-stats .ss .names{font-size:12px;line-height:1.5;color:var(--titanium-pearl);opacity:.75;max-height:52px;overflow:hidden}
+
+/* ── VIEW 3 ────────────────────────────────────────────────── */
+#view3{padding:16px 34px 18px;display:grid;grid-template-rows:auto minmax(0,1.16fr) minmax(0,1fr) auto;gap:13px;height:100%}
+.v3-top{display:grid;grid-template-columns:1fr 0.36fr 1fr;gap:18px;align-items:stretch;min-height:0}
+.offer-panel{border:1px solid rgba(44,224,210,.4);border-radius:12px;background:linear-gradient(180deg,rgba(10,38,38,.5),rgba(14,20,21,.6));padding:20px 26px;display:flex;flex-direction:column;justify-content:space-between;min-height:0}
+.chose-panel{border:1px solid rgba(60,207,207,.4);border-radius:12px;background:linear-gradient(180deg,rgba(8,40,42,.42),rgba(14,20,21,.6));padding:20px 26px;display:flex;flex-direction:column;justify-content:space-between;min-height:0}
+.fig-row{display:flex;gap:8px}
+.fig-row.divided .fig + .fig{border-left:1px solid rgba(44,224,210,.28)}
+.fig-row.divided-t .fig + .fig{border-left:1px solid rgba(60,207,207,.28)}
+.fig{flex:1;text-align:center;padding:0 6px}
+.fig .fn{font-size:11px;font-style:italic;color:var(--titanium-pearl);opacity:.6;margin-top:3px;font-variant-numeric:tabular-nums}
+.fig .fv{font-size:30px;font-weight:600;line-height:1.05}
+.fig .fl{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--smoked-titanium);margin-top:6px;line-height:1.35}
+.offer-panel .fig .fl,.chose-panel .fig .fl{color:var(--titanium-pearl)}
+.dist-cell{flex:1;border:1px solid rgba(44,224,210,.32);border-radius:8px;padding:18px 10px 15px;text-align:center;position:relative;overflow:hidden;background:linear-gradient(180deg,rgba(44,224,210,.05),rgba(44,224,210,.14))}
+.dist-cell .dband{font-size:13px;color:var(--titanium-pearl);letter-spacing:.03em}
+.dist-cell .dpct{font-size:32px;font-weight:600;margin:11px 0 4px;color:var(--titanium-pearl)}
+.dist-cell .dcnt{font-size:10px;color:var(--smoked-titanium);letter-spacing:.08em}
+.gap-mid{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:22px}
+.gap-mid .gt{color:var(--amber);font-size:22px;letter-spacing:.2em}
+.gap-mid .gl{color:var(--titanium-pearl);font-size:15px;line-height:1.6;letter-spacing:.06em}
+.v3-bottom{display:grid;grid-template-columns:2.4fr 1fr 1fr;gap:16px;min-height:0}
+.ex-card{border-radius:10px;padding:18px 16px;display:flex;flex-direction:column;align-items:center;text-align:center;justify-content:space-evenly}
+.obs-row{display:flex;gap:14px;align-items:flex-start}
+.obs-row .oi{width:44px;height:44px;flex:0 0 auto;border:1.5px solid;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.obs-row .oi svg{width:22px;height:22px;fill:none;stroke-width:2.4}
+.obs-row .ov{font-size:18px;font-weight:600;letter-spacing:.04em}
+.obs-row .od{font-size:14px;line-height:1.5;color:var(--smoked-titanium);margin-top:4px}
+
+/* ── VIEW 4 ────────────────────────────────────────────────── */
+#view4{overflow:hidden}
+#v4-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-52%);text-align:center;z-index:6;width:1100px}
+#v4-center .v4-h{font-size:68px;letter-spacing:.05em;line-height:1.02;white-space:nowrap}
+#v4-center .v4-sub{font-size:22px;letter-spacing:.26em;line-height:1.85;margin-top:22px;color:var(--titanium-pearl)}
+/* semi-open gradient callout frames */
+.v4-stat{position:absolute;z-index:7;width:340px;--cc:var(--teal-bright);--frame:linear-gradient(0deg,rgba(0,0,0,0),rgba(0,0,0,0));padding:20px 24px;border-radius:16px;background:rgba(12,15,16,.5);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
+.v4-stat::before{content:"";position:absolute;inset:0;border-radius:16px;padding:1.5px;background:var(--frame);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}
+.v4-stat .sv{font-size:62px;font-weight:600;line-height:1;color:var(--cc)}
+.v4-stat .sd{font-size:15px;letter-spacing:.09em;text-transform:uppercase;line-height:1.5;margin-top:8px;color:var(--titanium-pearl)}
+.v4-stat .sc{font-size:13px;font-style:italic;color:var(--cc);opacity:.85;margin-top:12px;letter-spacing:.02em}
+#v4-leaders{position:absolute;inset:0;z-index:5;pointer-events:none}
+#v4-trail{position:absolute;right:0;bottom:0;width:760px;height:420px;z-index:4;pointer-events:none;opacity:.9}
+#v4-note{position:absolute;left:50%;bottom:172px;transform:translateX(-50%);text-align:center;color:var(--titanium-pearl);font-size:20px;line-height:1.7;z-index:6;opacity:.9}
+#v4-btns{position:absolute;left:50%;bottom:82px;transform:translateX(-50%);display:flex;gap:26px;z-index:6}
+#v4-btns .cta-out{white-space:nowrap}
+#v4-restart{border-color:var(--smoked-titanium);color:var(--smoked-titanium)}
+#v4-restart svg{stroke:var(--smoked-titanium)}
+#v4-restart:hover{border-color:var(--titanium-pearl);color:var(--titanium-pearl);background:rgba(80,85,86,.18);box-shadow:none}
+#v4-restart:hover svg{stroke:var(--titanium-pearl)}
+
+.hidden{display:none !important}
+</style>
+</head>
+<body>
+<div id="screen">
+  <div id="stage">
+    <div id="bg"></div>
+
+    <!-- VIEW 1 · INDIVIDUAL RESULT -->
+    <section class="view" id="view1" data-screen-label="View 1 — Individual Result">
+      <!-- DEV ONLY — safe to delete -->
+      <div id="preview-ctl">
+        <span class="lbl">Preview State</span>
+        <select id="preview-select" aria-label="Preview session state">
+          <option value="shop">Shop</option>
+          <option value="grabABite">Grab a Bite</option>
+          <option value="restroom">Restroom only</option>
+          <option value="goOutside">Go Outside</option>
+          <option value="zero">Zero interaction</option>
+        </select>
+      </div>
+      <!-- /DEV ONLY -->
+      <div class="v1-grid" id="v1-grid"></div>
+    </section>
+
+    <!-- VIEW 2 · SYNTHESIS -->
+    <section class="view" id="view2" data-screen-label="View 2 — Synthesis">
+      <div id="rail">
+        <div class="panel" style="padding:26px 24px 22px">
+          <h1 class="mich" style="font-size:40px;letter-spacing:.06em">SYNTHESIS</h1>
+          <div class="lbl" style="font-size:13px;margin-top:10px">Results across all user sessions</div>
+          <div class="muted" id="v2-meta" style="font-size:13px;letter-spacing:.1em;margin-top:14px"></div>
+        </div>
+        <div class="panel" id="rank-panel">
+          <div style="display:flex;align-items:center;gap:12px;justify-content:space-between">
+            <div style="display:flex;align-items:center;gap:14px;min-width:0">
+              <span class="badge-n">01</span>
+              <div style="min-width:0">
+                <div class="panel-t" style="font-size:14px">Store Response Ranking</div>
+                <div class="muted" id="rank-sub" style="font-size:12px;margin-top:3px"></div>
+              </div>
+            </div>
+            <label style="display:flex;align-items:center;gap:7px;flex:0 0 auto">
+              <span class="lbl" style="font-size:12px">Sort by</span>
+              <select id="rank-sort" aria-label="Sort ranking by metric" style="background:rgba(10,14,15,.85);border:1px solid var(--border);color:var(--titanium-pearl);font-family:inherit;font-size:12px;letter-spacing:.05em;padding:6px 8px;border-radius:5px;text-transform:uppercase">
+                <option value="refusalRate">Refusal Rate</option>
+                <option value="timesOpened">Times Opened</option>
+                <option value="entryPrice">Most Affordable</option>
+                <option value="highPrice">Most Expensive</option>
+              </select>
+            </label>
+          </div>
+          <div class="rank-scroll"><table class="rank-tbl" id="rank-tbl"></table></div>
+          <a href="#" id="full-list" style="margin-top:12px;font-size:12px;letter-spacing:.12em;text-transform:uppercase">View full store list →</a>
+        </div>
+      </div>
+
+      <div id="map-wrap">
+        <div id="map-bg" style="position:absolute;inset:0;background:url('OCULUS INSIDE  BACKGROUND PHOTO.jpg') center 42%/cover no-repeat;opacity:.5"></div>
+        <div style="position:absolute;inset:0;background:radial-gradient(90% 70% at 50% 30%,rgba(11,69,70,.28),transparent 70%)"></div>
+        <div class="map-controls">
+          <div style="display:flex;align-items:center;gap:14px">
+            <span class="badge-n">02</span>
+            <div>
+              <div class="panel-t" style="font-size:15px">Store Response Map</div>
+              <div class="muted" style="font-size:12px;margin-top:3px">Explore how commuters responded to each store.</div>
+            </div>
+            <div style="display:flex;align-items:flex-end;gap:14px;margin-left:20px">
+              <div id="metric-toggle" style="display:flex;align-items:flex-end;gap:14px">
+                <div style="display:flex;flex-direction:column;gap:6px">
+                  <span class="lbl" style="font-size:14px;letter-spacing:.14em;text-align:center">Commuter Behaviour</span>
+                  <div class="seg">
+                    <button data-metric="refusalRate" class="on">Refusal Rate</button>
+                    <button data-metric="timesOpened">Times Opened</button>
+                  </div>
+                </div>
+                <div style="width:1px;align-self:stretch;background:var(--border)"></div>
+                <div style="display:flex;flex-direction:column;gap:6px">
+                  <span class="lbl" style="font-size:14px;letter-spacing:.14em;text-align:center">Store Pricing</span>
+                  <div class="seg">
+                    <button data-metric="entryPrice">Most Affordable</button>
+                    <button data-metric="highPrice">Most Expensive</button>
+                  </div>
+                </div>
+              </div>
+              <span class="map-ico-info" tabindex="0" aria-label="What is refusal rate?">i
+                <span class="tip">Refusal rate = “wouldn’t shop here” ÷ times the store was opened. It only counts people who already opened the card, so store size on screen cannot influence it. Use the metric and floor toggles to filter — ranking and map update together.</span>
+              </span>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <span class="lbl" style="font-size:12px">Floor View</span>
+            <div class="seg" id="floor-toggle">
+              <button data-floor="1" class="on">1st Floor</button>
+              <button data-floor="2">2nd Floor</button>
+              <button data-floor="BOTH">Both</button>
+            </div>
+          </div>
+        </div>
+        <div id="map-points"></div>
+        <div id="map-legend"></div>
+        <div id="map-caption">Hover over a store to see details.</div>
+        <div id="map-tooltip"></div>
+      </div>
+
+      <div id="analysis-row">
+      <div class="panel v2-panel" id="panel-primary">
+        <div style="display:flex;align-items:center;gap:12px">
+          <span class="badge-n">03</span>
+          <div class="panel-t">Primary Choice <span class="muted" style="letter-spacing:.06em;font-weight:400">(first activity)</span></div>
+        </div>
+        <div id="primary-bars" style="margin-top:6px"></div>
+        <div class="muted" id="multi-line" style="font-size:13px;margin-top:16px;line-height:1.5"></div>
+      </div>
+
+      <div class="panel v2-panel" id="panel-price">
+        <div style="display:flex;align-items:center;gap:12px">
+          <span class="badge-n">04</span>
+          <div class="panel-t">Price Decisions</div>
+        </div>
+        <div style="display:flex;gap:18px;margin-top:8px;flex:1;align-items:center">
+          <div id="price-donut" style="flex:0 0 auto"></div>
+          <div class="donut-legend" id="price-legend" style="flex:1"></div>
+        </div>
+        <div style="display:flex;gap:14px;border-top:1px solid var(--border-soft);padding-top:12px" id="price-summary"></div>
+      </div>
+
+      <div class="panel v2-panel" id="panel-outside">
+        <div style="display:flex;align-items:center;gap:12px">
+          <span class="badge-n">05</span>
+          <div class="panel-t">Go Outside</div>
+        </div>
+        <div style="display:flex;gap:22px;margin-top:10px;flex:1">
+          <div id="outside-big" style="flex:0 0 128px;border:1px solid var(--border);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:14px 8px"></div>
+          <div style="flex:1" id="outside-list"></div>
+        </div>
+      </div>
+      </div>
+
+      <div class="panel" id="schema-stats"></div>
+      <div class="panel" id="takeaways"></div>
+
+      <button class="nav-arrow left" id="v2-back" aria-label="Back to individual result"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <button class="nav-arrow right" id="v2-fwd" aria-label="Forward to the gap"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+
+      <!-- tutorial -->
+      <div id="tutorial">
+        <div id="tut-mask"></div>
+        <div id="tut-hole"></div>
+        <div id="tut-arrow">▲</div>
+        <div id="tut-card">
+          <div class="tc-step" id="tc-step"></div>
+          <div class="tc-body" id="tc-body"></div>
+          <div class="tc-btns">
+            <button class="tc-skip" id="tc-skip">Skip</button>
+            <button class="tc-next" id="tc-next">Next</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 3 · THE GAP -->
+    <section class="view" id="view3" data-screen-label="View 3 — The Gap">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <h1 class="mich" style="font-size:28px;letter-spacing:.04em;line-height:1.18"><span style="color:var(--teal-bright)">A TRANSIT HUB.</span> <span style="color:var(--plum)">A DESTINATION-RETAIL OFFERING.</span></h1>
+          <div class="muted" style="font-size:15px;margin-top:8px;letter-spacing:.02em">Comparing what the Oculus offers with what daily commuters actually chose.</div>
+        </div>
+        <div class="muted" style="font-size:13px;line-height:1.5;max-width:360px;text-align:right;padding-top:4px">The Oculus moves millions of daily commuters. Our simulation shows how they engaged with the retail program inside.</div>
+      </div>
+
+      <div class="v3-top">
+        <div class="offer-panel">
+          <div class="panel-t" style="color:var(--teal-bright);font-size:20px;letter-spacing:.1em">What the Oculus offers</div>
+          <div class="fig-row divided" id="offer-figs" style="margin:16px 0 22px"></div>
+          <div class="lbl" style="color:var(--teal-bright);margin-bottom:8px">Typical price distribution <span class="muted" style="text-transform:none;letter-spacing:.02em">(mid-range price)</span></div>
+          <div class="fig-row" id="typical-dist" style="gap:10px;margin-top:8px"></div>
+          <div class="muted" style="font-size:11px;margin-top:14px;line-height:1.45">Typical price is the mid-range item observed in each store. Most of the retail program sits well above everyday commuter price points — that mismatch is the argument.</div>
+        </div>
+
+        <div class="gap-mid">
+          <div class="gt mich">THE GAP</div>
+          <svg width="150" height="28" viewBox="0 0 150 28"><line x1="8" y1="14" x2="142" y2="14" stroke="var(--amber)" stroke-width="1.4"/><path d="M8 14l10-6M8 14l10 6" stroke="var(--amber)" stroke-width="1.4" fill="none"/><path d="M142 14l-10-6M142 14l-10 6" stroke="var(--amber)" stroke-width="1.4" fill="none"/></svg>
+          <div class="gl">SUPPLY DOES NOT MATCH COMMUTER BEHAVIOUR.</div>
+        </div>
+
+        <div class="chose-panel">
+          <div class="panel-t" style="color:var(--amber);font-size:20px;letter-spacing:.1em">What daily commuters chose</div>
+          <div class="muted" style="font-size:11px;font-style:italic;margin-top:2px">Simulated behaviour — recorded choices, not observed spending.</div>
+          <div class="fig-row divided-t" id="chose-figs" style="margin:14px 0 16px"></div>
+          <div style="display:flex;gap:20px;align-items:center;border-top:1px solid var(--border-soft);padding-top:14px">
+            <div id="chose-donut" style="flex:0 0 auto"></div>
+            <div class="donut-legend" id="chose-legend" style="flex:1"></div>
+            <div style="flex:0 0 auto;text-align:center;border-left:1px solid var(--border-soft);padding-left:20px">
+              <div class="lbl" style="line-height:1.4">Median simulated spending</div>
+              <div class="num" id="median-spend" style="font-size:38px;font-weight:600;margin-top:10px"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="v3-bottom">
+        <div class="panel" style="padding:16px 22px;display:flex;flex-direction:column;min-height:0">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div>
+              <div class="panel-t" style="font-size:16px;color:var(--amber)">Typical price vs. commuter response</div>
+              <div class="muted" style="font-size:12px;margin-top:2px">Two separate measures. Solid: of everyone who opened a store in that band, the share who refused it. Dashed: of those who did buy, the share who took the cheapest of the three price tiers.</div>
+            </div>
+            <div class="muted" style="font-size:12px;text-align:right;max-width:250px;line-height:1.4">Refusal climbs steeply with price. Cheapest-tier share stays flat and high, so the mismatch is not only at the luxury end. Simulated behaviour.</div>
+          </div>
+          <div id="line-chart" style="flex:1;margin-top:8px;display:flex;flex-direction:column;min-height:0"></div>
+        </div>
+
+        <div class="panel" style="padding:16px 22px;display:flex;flex-direction:column;min-height:0">
+          <div class="panel-t" style="text-align:center;font-size:16px">Example stores</div>
+          <div style="display:flex;gap:16px;margin-top:14px;flex:1;min-height:0" id="example-stores"></div>
+        </div>
+
+        <div class="panel" style="padding:16px 22px;display:flex;flex-direction:column;min-height:0">
+          <div class="panel-t" style="text-align:center;font-size:16px;margin-bottom:14px">Key observations</div>
+          <div id="observations" style="flex:1;display:flex;flex-direction:column;justify-content:space-between"></div>
+        </div>
+      </div>
+
+      <div class="panel" style="display:flex;justify-content:space-between;align-items:center;gap:34px;padding:16px 30px">
+        <div style="display:flex;align-items:center;gap:22px">
+          <div style="width:52px;height:52px;border:1.5px solid var(--teal-bright);border-radius:50%;display:flex;align-items:center;justify-content:center;flex:0 0 auto;box-shadow:0 0 20px rgba(60,207,207,.35),inset 0 0 12px rgba(60,207,207,.2)"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="var(--teal-bright)" stroke-width="2"><circle cx="12" cy="5" r="2.4"/><path d="M12 8v7M8 21l4-6 4 6M7 11l5 1 5-1"/></svg></div>
+          <div class="mich" style="font-size:18px;letter-spacing:.05em;line-height:1.45"><div style="color:var(--titanium-pearl)">THE OCULUS IS BUILT FOR MOVEMENT.</div><div style="color:var(--teal-bright)">THE RETAIL PROGRAM INSIDE IS DESIGNED FOR A DIFFERENT KIND OF CUSTOMER.</div></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:26px;flex:0 0 auto">
+          <div style="width:1px;height:52px;background:var(--border)"></div>
+          <div class="muted" style="font-size:13px;line-height:1.5;max-width:360px">Daily commuters have limited time, different price expectations, and different needs — and that shows in their choices.</div>
+        </div>
+      </div>
+
+      <button class="nav-arrow left" id="v3-back" aria-label="Back to synthesis"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <button class="nav-arrow right" id="v3-fwd" aria-label="Forward to the ending"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+    </section>
+
+    <!-- VIEW 4 · ENDING -->
+    <section class="view" id="view4" data-screen-label="View 4 — Ending">
+      <svg id="v4-leaders" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+      <canvas id="v4-trail" width="760" height="420"></canvas>
+      <div id="v4-center">
+        <div class="v4-h mich">THE DATA IS IN.</div>
+        <div class="v4-sub mich">HERE IS WHAT COMMUTERS ACTUALLY DID<br>WITHIN 15 MINUTES INSIDE<br>THE OCULUS.</div>
+      </div>
+      <div class="v4-stat" id="v4-tl" style="top:300px;left:130px;text-align:left"></div>
+      <div class="v4-stat" id="v4-tr" style="top:300px;right:130px;text-align:right"></div>
+      <div class="v4-stat" id="v4-bl" style="top:590px;left:170px;text-align:left"></div>
+      <div class="v4-stat" id="v4-br" style="top:590px;right:170px;text-align:right"></div>
+      <div id="v4-note">The platform does not prescribe an answer.<br>It makes commuter choices visible and lets the data speak.</div>
+      <div id="v4-btns">
+        <button class="cta-out" id="v4-explore">Explore the synthesis <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        <button class="cta-out" id="v4-restart">Restart simulation <svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 108-8M4 4v5h5"/></svg></button>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════
+   1. DEV MODE — set to false before connecting real data.
+      When false, the PREVIEW STATE control on View 1 is hidden.
+   ═══════════════════════════════════════════════════════════════════ */
+const DEV_MODE = true;
+
+/* ═══════════════════════════════════════════════════════════════════
+   2. STORE_DATA — REAL. From an in-person price audit of the Oculus
+      retail program. 49 unique stores (Apple on both floors). Do not modify.
+        entryPrice   = lowest price point observed in the store
+        typicalPrice = mid-range price point observed in the store
+        highPrice    = highest price point observed in the store
+      Apple is listed once with floor "BOTH": counted once in all
+      totals, but rendered in both the 1ST and 2ND FLOOR map views.
+   ═══════════════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════════════════
+   STORE CATALOG — shaped to match src/data/storeCatalog.ts exactly.
+   floor is 1|2 (integer). category is 'shop'|'food'. prices are ordered
+   HIGH, MID, LOW and are read BY TIER, never by index.
+   Apple appears twice (apple-1st / apple-2nd) as it does in the catalog;
+   UNIQUE_STORE_COUNT below counts it once.
+
+   ⚠ PORTING: delete this array and import the real catalog instead.
+   Before you do, verify every slug below against storeCatalog.ts. These
+   were derived from display names and are the ONLY values that may not
+   match. Everything else in this file already speaks the schema.
+   ══════════════════════════════════════════════════════════════════════ */
+const STORE_DATA = [
+  { slug:"goldenbear", name:"Goldenbear", floor:1, category:"shop", prices:[{tier:"high",value:270},{tier:"mid",value:79},{tier:"low",value:20}] },
+  { slug:"cos", name:"COS", floor:1, category:"shop", prices:[{tier:"high",value:1200},{tier:"mid",value:600},{tier:"low",value:25}] },
+  { slug:"world-cup-essentials", name:"World Cup Essentials", floor:1, category:"shop", prices:[{tier:"high",value:80},{tier:"mid",value:40},{tier:"low",value:15}] },
+  { slug:"aesop", name:"Aesop", floor:1, category:"shop", prices:[{tier:"high",value:250},{tier:"mid",value:75},{tier:"low",value:30}] },
+  { slug:"mac", name:"MAC", floor:1, category:"shop", prices:[{tier:"high",value:56},{tier:"mid",value:30},{tier:"low",value:25}] },
+  { slug:"nyc-gifts", name:"NYC Gifts", floor:1, category:"shop", prices:[{tier:"high",value:65},{tier:"mid",value:35},{tier:"low",value:15}] },
+  { slug:"moonworld", name:"Moonworld", floor:1, category:"shop", prices:[{tier:"high",value:2700},{tier:"mid",value:350},{tier:"low",value:75}] },
+  { slug:"tumi", name:"TUMI", floor:1, category:"shop", prices:[{tier:"high",value:1300},{tier:"mid",value:1050},{tier:"low",value:950}] },
+  { slug:"kate-spade", name:"Kate Spade", floor:1, category:"shop", prices:[{tier:"high",value:548},{tier:"mid",value:180},{tier:"low",value:58}] },
+  { slug:"charles-tyrwhitt", name:"Charles Tyrwhitt", floor:1, category:"shop", prices:[{tier:"high",value:299},{tier:"mid",value:65},{tier:"low",value:39.75}] },
+  { slug:"french-embassy", name:"French Embassy", floor:1, category:"shop", prices:[{tier:"high",value:168},{tier:"mid",value:118},{tier:"low",value:40}] },
+  { slug:"breitling", name:"Breitling", floor:1, category:"shop", prices:[{tier:"high",value:10000},{tier:"mid",value:6000},{tier:"low",value:3500}] },
+  { slug:"pandora", name:"Pandora", floor:1, category:"shop", prices:[{tier:"high",value:1650},{tier:"mid",value:140},{tier:"low",value:35}] },
+  { slug:"longines", name:"Longines", floor:1, category:"shop", prices:[{tier:"high",value:6000},{tier:"mid",value:2500},{tier:"low",value:2000}] },
+  { slug:"asphalt", name:"Asphalt", floor:1, category:"shop", prices:[{tier:"high",value:800},{tier:"mid",value:129},{tier:"low",value:55}] },
+  { slug:"boss", name:"BOSS", floor:1, category:"shop", prices:[{tier:"high",value:799},{tier:"mid",value:199},{tier:"low",value:85}] },
+  { slug:"twenty-four", name:"Twenty Four", floor:1, category:"shop", prices:[{tier:"high",value:125},{tier:"mid",value:60},{tier:"low",value:40}] },
+  { slug:"stuart-weitzman", name:"Stuart Weitzman", floor:1, category:"shop", prices:[{tier:"high",value:850},{tier:"mid",value:500},{tier:"low",value:270}] },
+  { slug:"swarovski", name:"Swarovski", floor:1, category:"shop", prices:[{tier:"high",value:580},{tier:"mid",value:219},{tier:"low",value:79}] },
+  { slug:"sephora", name:"Sephora", floor:1, category:"shop", prices:[{tier:"high",value:199},{tier:"mid",value:35},{tier:"low",value:16}] },
+  { slug:"under-armour", name:"Under Armour", floor:1, category:"shop", prices:[{tier:"high",value:140},{tier:"mid",value:55},{tier:"low",value:25}] },
+  { slug:"repair-shop", name:"Repair & Shop", floor:1, category:"shop", prices:[{tier:"high",value:40},{tier:"mid",value:25},{tier:"low",value:20}] },
+  { slug:"sugar-bear", name:"Sugar Bear", floor:1, category:"food", prices:[{tier:"high",value:60},{tier:"mid",value:14.99},{tier:"low",value:3.99}] },
+  { slug:"le-cafe-coffee", name:"Le Cafe Coffee", floor:1, category:"food", prices:[{tier:"high",value:48},{tier:"mid",value:7.25},{tier:"low",value:3.75}] },
+  { slug:"pure-liquid", name:"Pure Liquid", floor:1, category:"food", prices:[{tier:"high",value:1099},{tier:"mid",value:29},{tier:"low",value:16.99}] },
+  { slug:"cole-haan", name:"Cole Haan", floor:2, category:"shop", prices:[{tier:"high",value:400},{tier:"mid",value:170},{tier:"low",value:10}] },
+  { slug:"rebag", name:"Rebag", floor:2, category:"shop", prices:[{tier:"high",value:35000},{tier:"mid",value:1800},{tier:"low",value:400}] },
+  { slug:"popmart", name:"Popmart", floor:2, category:"shop", prices:[{tier:"high",value:1479},{tier:"mid",value:350},{tier:"low",value:25}] },
+  { slug:"variazioni-italy", name:"Variazioni Italy", floor:2, category:"shop", prices:[{tier:"high",value:385},{tier:"mid",value:185},{tier:"low",value:99}] },
+  { slug:"nahauli-gallery", name:"Nahauli Gallery", floor:2, category:"shop", prices:[{tier:"high",value:15000},{tier:"mid",value:6000},{tier:"low",value:700}] },
+  { slug:"michele-lopeiore-milano", name:"Michele Lopeiore Milano", floor:2, category:"shop", prices:[{tier:"high",value:325},{tier:"mid",value:265},{tier:"low",value:195}] },
+  { slug:"beautiful-amore", name:"Beautiful Amore", floor:2, category:"shop", prices:[{tier:"high",value:48},{tier:"mid",value:20},{tier:"low",value:12}] },
+  { slug:"portables", name:"Portables", floor:2, category:"shop", prices:[{tier:"high",value:399},{tier:"mid",value:199},{tier:"low",value:49}] },
+  { slug:"atelier", name:"Atelier", floor:2, category:"shop", prices:[{tier:"high",value:139},{tier:"mid",value:99},{tier:"low",value:39}] },
+  { slug:"sam-edelman", name:"Sam Edelman", floor:2, category:"shop", prices:[{tier:"high",value:188},{tier:"mid",value:128},{tier:"low",value:98}] },
+  { slug:"calzedonia", name:"Calzedonia", floor:2, category:"shop", prices:[{tier:"high",value:99},{tier:"mid",value:65},{tier:"low",value:35}] },
+  { slug:"fragrance-com", name:"Fragrance.com", floor:2, category:"shop", prices:[{tier:"high",value:616},{tier:"mid",value:85},{tier:"low",value:27}] },
+  { slug:"moleskin", name:"Moleskine", floor:2, category:"shop", prices:[{tier:"high",value:37},{tier:"mid",value:21},{tier:"low",value:13}] },
+  { slug:"tissot", name:"Tissot", floor:2, category:"shop", prices:[{tier:"high",value:2450},{tier:"mid",value:850},{tier:"low",value:400}] },
+  { slug:"pretty-well-beauty", name:"Pretty Well Beauty", floor:2, category:"shop", prices:[{tier:"high",value:24},{tier:"mid",value:18},{tier:"low",value:8}] },
+  { slug:"lola-soap", name:"Lola Soap", floor:2, category:"shop", prices:[{tier:"high",value:1500},{tier:"mid",value:200},{tier:"low",value:15}] },
+  { slug:"kiehls", name:"Kiehl's", floor:2, category:"shop", prices:[{tier:"high",value:150},{tier:"mid",value:35},{tier:"low",value:19}] },
+  { slug:"loccitane", name:"L'Occitane", floor:2, category:"shop", prices:[{tier:"high",value:120},{tier:"mid",value:62},{tier:"low",value:14}] },
+  { slug:"eye-origin", name:"Eye Origin", floor:2, category:"shop", prices:[{tier:"high",value:4190},{tier:"mid",value:599},{tier:"low",value:99}] },
+  { slug:"eye-world-optical", name:"Eye World Optical", floor:2, category:"shop", prices:[{tier:"high",value:2790},{tier:"mid",value:875},{tier:"low",value:475}] },
+  { slug:"ethan-jordan-jewelers", name:"Ethan Jordan Jewelers", floor:2, category:"shop", prices:[{tier:"high",value:5450},{tier:"mid",value:2950},{tier:"low",value:499}] },
+  { slug:"dunkin", name:"Dunkin'", floor:2, category:"food", prices:[{tier:"high",value:12.99},{tier:"mid",value:6},{tier:"low",value:1.79}] },
+  { slug:"la-maison-du-chocolat", name:"La Maison du Chocolat", floor:2, category:"food", prices:[{tier:"high",value:165},{tier:"mid",value:30},{tier:"low",value:11}] },
+  { slug:"apple-1st", name:"Apple", floor:1, category:"shop", prices:[{tier:"high",value:6000},{tier:"mid",value:899},{tier:"low",value:19}] },
+  { slug:"apple-2nd", name:"Apple", floor:2, category:"shop", prices:[{tier:"high",value:6000},{tier:"mid",value:899},{tier:"low",value:19}] },
+];
+const UNIQUE_STORE_COUNT = 49;   // 50 catalog entries, Apple counted once
+const priceOf = (s,tier) => (s.prices.find(p=>p.tier===tier)||{}).value ?? 0;
+
+/* ═══════════════════════════════════════════════════════════════════
+   3. SESSION_DATA — PLACEHOLDER. Simulated user behaviour.
+      Replace this entire object with real data from the backend. Keep
+      every key name identical. All percentages, rankings and bar
+      lengths on screen are derived from these raw counts at runtime —
+      nothing is hard-coded, so swapping this object updates every view
+      automatically. Any field set to null renders as "—".
+   ═══════════════════════════════════════════════════════════════════ */
+const SESSION_DATA = {
+  meta: { totalUsers: 124, periodLabel: "JULY 2026" },
+
+  // Per-store interaction counts. Keyed by catalog SLUG. Field names match
+  // interactions.choice exactly: low | mid | high | wouldntShop.
+  //   timesOpened = COUNT(*) of interaction rows for that slug
+  //   low/mid/high/wouldntShop = COUNT(*) FILTER (WHERE choice = ...)
+  // INVARIANT: low + mid + high + wouldntShop === timesOpened
+  // refusalRate = wouldntShop / timesOpened, computed at runtime.
+  // NOTE: the database records no impression/display event, so engagement
+  // rate is not computable and must never be reintroduced.
+  stores: {
+    "goldenbear": { timesOpened:10, low:7, mid:2, high:0, wouldntShop:1 },
+    "cos": { timesOpened:18, low:6, mid:3, high:1, wouldntShop:8 },
+    "world-cup-essentials": { timesOpened:10, low:6, mid:2, high:0, wouldntShop:2 },
+    "aesop": { timesOpened:1, low:1, mid:0, high:0, wouldntShop:0 },
+    "mac": { timesOpened:10, low:5, mid:2, high:0, wouldntShop:3 },
+    "nyc-gifts": { timesOpened:3, low:2, mid:1, high:0, wouldntShop:0 },
+    "moonworld": { timesOpened:3, low:0, mid:1, high:0, wouldntShop:2 },
+    "tumi": { timesOpened:6, low:1, mid:0, high:0, wouldntShop:5 },
+    "kate-spade": { timesOpened:14, low:8, mid:3, high:1, wouldntShop:2 },
+    "charles-tyrwhitt": { timesOpened:9, low:5, mid:2, high:0, wouldntShop:2 },
+    "french-embassy": { timesOpened:2, low:1, mid:1, high:0, wouldntShop:0 },
+    "breitling": { timesOpened:8, low:1, mid:0, high:0, wouldntShop:7 },
+    "pandora": { timesOpened:12, low:6, mid:3, high:0, wouldntShop:3 },
+    "longines": { timesOpened:7, low:1, mid:0, high:0, wouldntShop:6 },
+    "asphalt": { timesOpened:7, low:3, mid:2, high:0, wouldntShop:2 },
+    "boss": { timesOpened:1, low:1, mid:0, high:0, wouldntShop:0 },
+    "twenty-four": { timesOpened:7, low:3, mid:2, high:0, wouldntShop:2 },
+    "stuart-weitzman": { timesOpened:6, low:1, mid:1, high:0, wouldntShop:4 },
+    "swarovski": { timesOpened:32, low:14, mid:8, high:3, wouldntShop:7 },
+    "sephora": { timesOpened:27, low:17, mid:5, high:1, wouldntShop:4 },
+    "under-armour": { timesOpened:7, low:3, mid:2, high:0, wouldntShop:2 },
+    "repair-shop": { timesOpened:5, low:3, mid:1, high:0, wouldntShop:1 },
+    "sugar-bear": { timesOpened:1, low:1, mid:0, high:0, wouldntShop:0 },
+    "le-cafe-coffee": { timesOpened:15, low:10, mid:3, high:0, wouldntShop:2 },
+    "pure-liquid": { timesOpened:2, low:1, mid:1, high:0, wouldntShop:0 },
+    "cole-haan": { timesOpened:1, low:0, mid:0, high:0, wouldntShop:1 },
+    "rebag": { timesOpened:6, low:1, mid:0, high:0, wouldntShop:5 },
+    "popmart": { timesOpened:1, low:0, mid:0, high:0, wouldntShop:1 },
+    "variazioni-italy": { timesOpened:1, low:0, mid:1, high:0, wouldntShop:0 },
+    "nahauli-gallery": { timesOpened:6, low:1, mid:0, high:0, wouldntShop:5 },
+    "michele-lopeiore-milano": { timesOpened:4, low:1, mid:1, high:0, wouldntShop:2 },
+    "beautiful-amore": { timesOpened:14, low:8, mid:3, high:0, wouldntShop:3 },
+    "portables": { timesOpened:0, low:0, mid:0, high:0, wouldntShop:0 },
+    "atelier": { timesOpened:0, low:0, mid:0, high:0, wouldntShop:0 },
+    "sam-edelman": { timesOpened:0, low:0, mid:0, high:0, wouldntShop:0 },
+    "calzedonia": { timesOpened:0, low:0, mid:0, high:0, wouldntShop:0 },
+    "fragrance-com": { timesOpened:1, low:0, mid:0, high:1, wouldntShop:0 },
+    "moleskin": { timesOpened:4, low:2, mid:1, high:0, wouldntShop:1 },
+    "tissot": { timesOpened:5, low:1, mid:0, high:0, wouldntShop:4 },
+    "pretty-well-beauty": { timesOpened:4, low:1, mid:1, high:0, wouldntShop:2 },
+    "lola-soap": { timesOpened:0, low:0, mid:0, high:0, wouldntShop:0 },
+    "kiehls": { timesOpened:1, low:1, mid:0, high:0, wouldntShop:0 },
+    "loccitane": { timesOpened:1, low:1, mid:0, high:0, wouldntShop:0 },
+    "eye-origin": { timesOpened:4, low:1, mid:0, high:0, wouldntShop:3 },
+    "eye-world-optical": { timesOpened:7, low:2, mid:1, high:0, wouldntShop:4 },
+    "ethan-jordan-jewelers": { timesOpened:6, low:1, mid:0, high:0, wouldntShop:5 },
+    "dunkin": { timesOpened:5, low:2, mid:1, high:0, wouldntShop:2 },
+    "la-maison-du-chocolat": { timesOpened:8, low:5, mid:2, high:0, wouldntShop:1 },
+    "apple-1st": { timesOpened:8, low:2, mid:2, high:0, wouldntShop:4 },
+    "apple-2nd": { timesOpened:9, low:3, mid:1, high:1, wouldntShop:4 }
+  },
+
+  // First activity chosen. Counts sum to totalUsers.
+  primaryChoice: { shop: 58, grabABite: 32, restroom: 16, goOutside: 18 },
+
+  // Users who selected more than one activity in a single session.
+  multiActivityUsers: 51,
+
+  // Session-level user counts (backend-provided). Used by View 3.
+  userMetrics: { openedRetail: 79, completedPurchase: 55, rejectedAny: 61 },
+
+  // Destinations chosen by users who selected Go Outside. Sum = goOutside.
+  outsideDestinations: { memorialPools: 8, brookfieldPlace: 5, oculusPlaza: 3, oneWTCLobby: 2 },
+
+  // Sessions ended by timer vs. by leaving.
+  // ended_by counts. Keys match sessions.ended_by exactly.
+  sessionEnd: { timer: 106, went_outside: 18 },
+
+  // Sessions whose total_spend was exactly 0.
+  sessionsZeroSpend: 41,
+
+  // Mean elapsed_seconds for sessions where ended_by = 'went_outside'.
+  avgElapsedWentOutside: 96,
+
+  // The single session belonging to the person viewing View 1.
+  individualSession: {
+    primaryChoices: ["shop", "restroom", "grabABite"],
+    floorsVisited: [1, 2],
+    restroomUsed: false,
+    endedBy: "timer",
+    outsideDestination: null,
+    path: [
+      { storeId: "swarovski", floor: 1, decision: "entry",        pricePaid: 79 },
+      { storeId: "breitling", floor: 1, decision: "wontShopHere", pricePaid: 0 },
+      { storeId: "kiehls",    floor: 2, decision: "entry",        pricePaid: 19 }
+    ]
+  }
+};
+
+/* ─── DEV ONLY — safe to delete ─────────────────────────────────────
+   Alternate individual sessions for the PREVIEW STATE control (dev only). */
+const PREVIEW_SESSIONS = {
+  shop: SESSION_DATA.individualSession,
+  grabABite: {
+    primaryChoices: ["grabABite","restroom"], floorsVisited: [1, 2], restroomUsed:true,
+    endedBy:"timer", outsideDestination:null,
+    path:[
+      { storeId:"le-cafe-coffee", floor:1, decision:"entry", pricePaid:3.75 },
+      { storeId:"la-maison-du-chocolat", floor:2, decision:"wontShopHere", pricePaid:0 },
+      { storeId:"dunkin", floor:2, decision:"entry", pricePaid:1.79 }
+    ]
+  },
+  restroom: {
+    primaryChoices:["restroom"], floorsVisited:[1], restroomUsed:true,
+    endedBy:"timer", outsideDestination:null, path:[]
+  },
+  goOutside: {
+    primaryChoices:["goOutside"], floorsVisited:[1], restroomUsed:false,
+    endedBy:"went_outside", outsideDestination:"memorialPools",
+    path:[ { storeId:"sephora", floor:1, decision:"wontShopHere", pricePaid:0 } ]
+  },
+  zero: {
+    primaryChoices:[], floorsVisited:[1], restroomUsed:false,
+    endedBy:"timer", outsideDestination:null, path:[]
+  }
+};
+/* ─── /DEV ONLY ─────────────────────────────────────────────────── */
+
+/* ═══════════════════════════════════════════════════════════════════
+   HELPERS & DERIVED MODEL — nothing below is hard-coded from a screen.
+   ═══════════════════════════════════════════════════════════════════ */
+const NA = "—";
+const reduceMotion = window.matchMedia("(prefers-reduced-motion:reduce)").matches;
+const byId = STORE_DATA.reduce((m,s)=>(m[s.slug]=s,m),{});  // was s.id — a field that never existed; broke init() at renderView1
+
+function fmtMoney(v){
+  if(v==null) return NA;
+  const dec = Number.isInteger(v) ? 0 : 2;
+  return "$" + v.toLocaleString("en-US",{minimumFractionDigits:dec,maximumFractionDigits:dec});
+}
+function fmtPct(x,dp=0){ if(x==null||isNaN(x)) return NA; return (x*100).toFixed(dp)+"%"; }
+function median(arr){ const a=[...arr].sort((x,y)=>x-y); const n=a.length; if(!n) return null; return n%2 ? a[(n-1)/2] : (a[n/2-1]+a[n/2])/2; }
+function catLabel(c){ return c==="food" ? "Grab a Bite" : "Shop"; }
+// floor is the integer 1 or 2, matching interactions.floor and catalog.floor
+function floorLabel(f){ return Number(f)===1?"1ST":Number(f)===2?"2ND":"\u2014"; }
+function floorLong(f){ return Number(f)===1?"1ST FLOOR":Number(f)===2?"2ND FLOOR":"\u2014"; }
+const PRICE_BANDS = [
+  { label:"Below $25", test:v=>v<25 },
+  { label:"$25 – $99", test:v=>v>=25&&v<100 },
+  { label:"$100 – $499", test:v=>v>=100&&v<500 },
+  { label:"$500+", test:v=>v>=500 }
+];
+function bands(values){
+  const n = values.length;
+  return PRICE_BANDS.map(b=>{ const c=values.filter(b.test).length; return { label:b.label, count:c, pct:c/n }; });
+}
+
+/* icon set — simple line glyphs only */
+function icon(name,sz=24,sw=1.6){
+  const P = {
+    bag:'<path d="M6 8h12l-1 13H7L6 8z"/><path d="M9 8V6a3 3 0 016 0v2"/>',
+    bagcheck:'<path d="M6 8h12l-1 13H7L6 8z"/><path d="M9 8V6a3 3 0 016 0v2"/><path d="M9.5 14.5l2 2 3.5-3.5"/>',
+    xcircle:'<circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/>',
+    stairs:'<path d="M4 19h4v-4h4v-4h4V7h4"/>',
+    dollar:'<circle cx="12" cy="12" r="9"/><path d="M12 7v10M14.5 9.2C14 8.3 13 8 12 8c-1.4 0-2.5.8-2.5 2s1.1 1.8 2.5 2 2.5.8 2.5 2-1.1 2-2.5 2c-1 0-2-.3-2.5-1.2"/>',
+    bars:'<circle cx="12" cy="12" r="9"/><path d="M8.5 14v-2M12 14v-4M15.5 14v-6"/>',
+    clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    people:'<circle cx="8.5" cy="7" r="2.4"/><circle cx="15.5" cy="7" r="2.4"/><path d="M4.5 19v-2a3 3 0 013-3h2a3 3 0 013 3M11.5 19v-2a3 3 0 013-3h2a3 3 0 013 3"/>',
+    exit:'<path d="M14 4H6v16h8"/><path d="M11 12h9M16 8l4 4-4 4"/>',
+    cup:'<path d="M6 8h11v5a5 5 0 01-5 5H11a5 5 0 01-5-5V8z"/><path d="M17 9h2a2 2 0 010 4h-2"/><path d="M8 4v1M11 4v1M14 4v1"/>',
+    bulb:'<circle cx="12" cy="10" r="6"/><path d="M9.5 19h5M10 22h4"/>',
+    star:'<path d="M12 3l2.6 5.6 6 .7-4.4 4.1 1.2 5.9L12 16.9 6.6 19.3l1.2-5.9L3.4 9.3l6-.7L12 3z"/>',
+    tag:'<path d="M4 12V5a1 1 0 011-1h7l8 8-8 8-8-8z"/><circle cx="8.5" cy="8.5" r="1.4"/>',
+    trend:'<circle cx="12" cy="12" r="9"/><path d="M7 14l3-3 2 2 5-5M14 5h3v3"/>',
+    info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>',
+    building:'<path d="M5 21V5a1 1 0 011-1h6a1 1 0 011 1v16M13 21V9h5a1 1 0 011 1v11M8 8h2M8 12h2M8 16h2"/>',
+    arch:'<path d="M5 21V11a7 7 0 0114 0v10M9 21v-9a3 3 0 016 0v9"/>',
+    tower:'<path d="M12 3l3 5v13H9V8l3-5zM9 12h6M9 16h6"/>',
+    pool:'<path d="M4 20V8l8-4 8 4v12M4 12h16M12 4v16"/>'
+  };
+  return `<svg viewBox="0 0 24 24" width="${sz}" height="${sz}" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round">${P[name]||''}</svg>`;
+}
+
+const M = {};
+function buildModel(){
+  M.totalStores = UNIQUE_STORE_COUNT;   // 50 entries, Apple counted once
+  // price-distribution stats: Apple counted ONCE (numerator must match the
+  // UNIQUE_STORE_COUNT denominator; apple-1st/apple-2nd share one price list)
+  const PRICE_STORES = STORE_DATA.filter(s=>s.slug!=="apple-2nd");
+  const entryArr = PRICE_STORES.map(s=>priceOf(s,"low"));
+  const typArr   = PRICE_STORES.map(s=>priceOf(s,"mid"));
+  M.medianEntry = median(entryArr);
+  M.medianTypical = median(typArr);
+  M.entryBands = bands(entryArr);
+  M.typicalBands = bands(typArr);
+  M.typicalOver100 = PRICE_STORES.filter(s=>priceOf(s,"mid")>=100).length;
+  M.typicalOver100Pct = M.typicalOver100/M.totalStores;
+  M.typicalOver500 = PRICE_STORES.filter(s=>priceOf(s,"mid")>=500).length;
+  M.typicalOver500Pct = M.typicalOver500/M.totalStores;
+
+  M.N = SESSION_DATA.meta.totalUsers;
+  M.period = SESSION_DATA.meta.periodLabel;
+  const sc = SESSION_DATA.stores;
+  M.storeStats = STORE_DATA.map(s=>{
+    const e = sc[s.slug] || {timesOpened:0,low:0,mid:0,high:0,wouldntShop:0};
+    const purchases = e.low + e.mid + e.high;
+    return Object.assign({}, s, e, {
+      id: s.slug,                       // legacy alias used by render code
+      type: s.category,
+      entryPrice:   priceOf(s,"low"),   // named aliases, resolved BY TIER
+      typicalPrice: priceOf(s,"mid"),
+      highPrice:    priceOf(s,"high"),
+      entrySelected: e.low, typicalSelected: e.mid, highSelected: e.high, wontShopHere: e.wouldntShop,
+      refusalRate:  e.timesOpened ? e.wouldntShop/e.timesOpened : 0,
+      purchaseRate: e.timesOpened ? purchases/e.timesOpened : 0
+    });
+  });
+  M.byIdStat = M.storeStats.reduce((m,s)=>(m[s.slug]=s,m),{});
+  M.totalDecisions = M.storeStats.reduce((a,s)=>a+s.timesOpened,0);
+  M.entrySel = M.storeStats.reduce((a,s)=>a+s.entrySelected,0);
+  M.typSel   = M.storeStats.reduce((a,s)=>a+s.typicalSelected,0);
+  M.highSel  = M.storeStats.reduce((a,s)=>a+s.highSelected,0);
+  M.wontSel  = M.storeStats.reduce((a,s)=>a+s.wontShopHere,0);
+
+  const pc = SESSION_DATA.primaryChoice;
+  M.primary = [
+    { key:"shop", label:"Shop", icon:"bag", count:pc.shop },
+    { key:"grabABite", label:"Grab a Bite", icon:"cup", count:pc.grabABite },
+    { key:"restroom", label:"Restroom", icon:"people", count:pc.restroom },
+    { key:"goOutside", label:"Go Outside", icon:"exit", count:pc.goOutside }
+  ].map(p=>Object.assign(p,{ pct: p.count/M.N }));
+  M.primaryMax = Math.max(...M.primary.map(p=>p.count));
+  M.multiPct = SESSION_DATA.multiActivityUsers/M.N;
+
+  M.goOutsideCount = pc.goOutside;
+  M.goOutsidePct = pc.goOutside/M.N;
+  const od = SESSION_DATA.outsideDestinations;
+  M.outside = [
+    { key:"memorialPools", label:"9/11 Memorial Pools", icon:"pool", count:od.memorialPools },
+    { key:"brookfieldPlace", label:"Brookfield Place", icon:"building", count:od.brookfieldPlace },
+    { key:"oculusPlaza", label:"Oculus Plaza", icon:"arch", count:od.oculusPlaza },
+    { key:"oneWTCLobby", label:"One WTC Lobby", icon:"tower", count:od.oneWTCLobby }
+  ].map(d=>Object.assign(d,{ pct: M.goOutsideCount? d.count/M.goOutsideCount : 0 }));
+
+  // refusal analytics
+  const rate = pred=>{ let c=0,w=0; M.storeStats.forEach(s=>{ if(pred(s)){ c+=s.timesOpened; w+=s.wontShopHere; } }); return { c, w, rate: c? w/c : 0 }; };
+  M.rejectAbove500 = rate(s=>s.entryPrice>500);
+  M.rejectAbove100 = rate(s=>s.entryPrice>100);
+  const avgRefusal = pred=>{ const a=M.storeStats.filter(s=>pred(s)&&s.timesOpened>0).map(s=>s.refusalRate); return a.length? a.reduce((x,y)=>x+y,0)/a.length : 0; };
+  M.refusalBelow100 = avgRefusal(s=>s.entryPrice<100);
+  M.refusalAbove500 = avgRefusal(s=>s.entryPrice>=500);
+  M.refusalMultiple = M.refusalBelow100? M.refusalAbove500/M.refusalBelow100 : 0;
+
+  // line chart: purchase vs refusal rate per typical-price band
+  M.lineBands = PRICE_BANDS.map(b=>{
+    const set = M.storeStats.filter(s=>b.test(s.typicalPrice));
+    const opened = set.reduce((a,s)=>a+s.timesOpened,0);
+    const won    = set.reduce((a,s)=>a+s.wontShopHere,0);
+    const lowN   = set.reduce((a,s)=>a+s.entrySelected,0);
+    const bought = set.reduce((a,s)=>a+s.entrySelected+s.typicalSelected+s.highSelected,0);
+    // reject   = of everyone who opened a store here, the share who walked away
+    // lowShare = of those who DID buy here, the share who took the cheapest tier
+    return { label:b.label, opened, bought, reject: opened? won/opened : 0, lowShare: bought? lowN/bought : 0 };
+  });
+
+  // session-level user metrics (View 3 right)
+  const um = SESSION_DATA.userMetrics;
+  M.choseShopPct = pc.shop/M.N;
+  M.openedRetailPct = um.openedRetail/M.N;
+  M.purchasePct = um.completedPurchase/M.N;
+  M.rejectedAnyPct = um.rejectedAny/M.N;
+
+  // median simulated spending = median of individual purchase totals (proxy:
+  // median entry price among users who bought). Here approximated from the
+  // median entry price of stores actually purchased at the entry point.
+  M.medianSpend = median(M.storeStats.filter(s=>s.entrySelected>0).map(s=>s.entryPrice)) || 0;
+  M.restroomPctVal = SESSION_DATA.primaryChoice.restroom/M.N;
+
+  // ── stats made possible by the frozen schema ──
+  M.zeroSpendCount = SESSION_DATA.sessionsZeroSpend;
+  M.zeroSpendPct   = M.N ? M.zeroSpendCount/M.N : 0;
+  M.neverOpened    = M.storeStats.filter(s=>!s.timesOpened);
+  M.neverOpenedCount = M.neverOpened.length;
+  M.avgLeaveSeconds = SESSION_DATA.avgElapsedWentOutside;
+  M.wentOutsideCount = SESSION_DATA.sessionEnd.went_outside;
+}
+
+/* ── SVG donut ─────────────────────────────────────────────── */
+function donut(segs, size, thick, centerTop, centerVal){
+  const total = segs.reduce((a,s)=>a+s.value,0) || 1;
+  const r = (size-thick)/2, cx=size/2, cy=size/2, C=2*Math.PI*r;
+  let off=0;
+  const rings = segs.map(s=>{
+    const len = s.value/total*C;
+    const el = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${s.color}" stroke-width="${thick}" stroke-dasharray="${len} ${C-len}" stroke-dashoffset="${-off}" transform="rotate(-90 ${cx} ${cy})"/>`;
+    off += len; return el;
+  }).join("");
+  const label = centerTop!=null ? `<text x="${cx}" y="${cy-6}" text-anchor="middle" fill="var(--titanium-pearl)" font-size="13" letter-spacing="1" font-family="Space Grotesk">${centerTop}</text><text x="${cx}" y="${cy+16}" text-anchor="middle" fill="var(--titanium-pearl)" font-size="22" font-weight="600" font-family="Space Grotesk">${centerVal}</text>` : "";
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">${rings}${label}</svg>`;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   RENDER — VIEW 1
+   ═══════════════════════════════════════════════════════════════════ */
+const CAT_LABEL = { shop:"SHOP", grabABite:"GRAB A BITE", restroom:"RESTROOM", goOutside:"GO OUTSIDE" };
+const CAT_ICON  = { shop:"bag", grabABite:"cup", restroom:"people", goOutside:"exit" };
+const DEST_TYPE = { memorialPools:"Memorial", brookfieldPlace:"Adjacent commercial", oculusPlaza:"Outdoor public space", oneWTCLobby:"Cultural" };
+const PRICE_PILL = { entry:{cls:"entry",label:"LOW POINT"}, typical:{cls:"typical",label:"MID POINT"}, high:{cls:"high",label:"HIGH POINT"} };
+
+function computeIndividual(is){
+  const nodes = is.path||[];
+  const purchases = nodes.filter(n=>n.decision!=="wontShopHere");
+  const rejected  = nodes.filter(n=>n.decision==="wontShopHere");
+  const totalSpent = nodes.reduce((a,n)=>a+(n.pricePaid||0),0);
+  const cat = (is.primaryChoices&&is.primaryChoices[0])||null;
+  return {
+    is, cat, nodes, purchases, rejected,
+    storesVisited: nodes.length,
+    purchasesMade: purchases.length,
+    storesRejected: rejected.length,
+    floorsVisited: (is.floorsVisited||[]).length,
+    totalSpent,
+    purchaseRate: nodes.length? purchases.length/nodes.length : 0,
+    rejectionRate: nodes.length? rejected.length/nodes.length : 0,
+    avgPurchase: purchases.length? totalSpent/purchases.length : 0
+  };
+}
+
+function renderView1(is){
+  const D = computeIndividual(is);
+  const isFood = D.cat==="grabABite";
+  const rejectWord = isFood ? "WOULDN'T STOP HERE" : "WOULDN'T SHOP HERE";
+  const catLabel = D.cat ? CAT_LABEL[D.cat] : "NONE";
+  const ORD = ["1ST","2ND","3RD","4TH","5TH"];
+  const extraCats = (is.primaryChoices||[]).slice(1);
+  const extraPanels = extraCats.map((c,i)=>`
+      <div class="panel" style="padding:9px 24px;border-color:rgba(226,79,209,.45);background:linear-gradient(180deg,rgba(40,12,38,.42),var(--panel))">
+        <div class="lbl" style="color:var(--plum)">${ORD[i+1]} Category Chosen</div>
+        <div class="num" style="font-size:18px;margin-top:5px;letter-spacing:.08em;color:var(--plum)">${CAT_LABEL[c]||NA}</div>
+      </div>`).join("");
+  const floorsTrail = (is.floorsVisited||[]).map(floorLong).join("  →  ") || NA;
+
+  const isOutside = is.endedBy==="went_outside";
+  const dest = isOutside ? (M.outside.find(o=>o.key===is.outsideDestination)||{label:NA,icon:"exit"}) : null;
+  const destType = isOutside ? (DEST_TYPE[is.outsideDestination]||NA) : null;
+
+  const statCells = isOutside ? [
+    { ic:"exit", n:destType, l:"Destination Type", text:true },
+    { ic:"dollar", n:0, l:"Total Spent", money:true },
+    { ic:"bag", n:D.storesVisited, l:D.storesVisited===1?"Store Visited Before Leaving":"Stores Visited Before Leaving" }
+  ] : [
+    { ic:"bag", n:D.storesVisited, l:"Stores Visited" },
+    { ic:"bagcheck", n:D.purchasesMade, l:"Purchases Made" },
+    { ic:"xcircle", n:D.storesRejected, l:D.storesRejected===1?"Store Rejected":"Stores Rejected" },
+    { ic:"stairs", n:D.floorsVisited, l:"Floors Visited" },
+    { ic:"dollar", n:D.totalSpent, l:"Total Spent", money:true }
+  ];
+
+  // header + left column
+  const left = `
+    <div style="grid-row:1 / span 2;display:flex;flex-direction:column;gap:10px;min-height:0;overflow-y:auto">
+      <div>
+        <h1 class="mich" style="font-size:26px;letter-spacing:.05em;line-height:1.15">YOUR SESSION SUMMARY</h1>
+        <div class="lbl" style="font-size:13px;margin-top:6px">Individual Result</div>
+        <div class="muted" style="font-size:14px;margin-top:8px;line-height:1.4">Here is what you did within 15 minutes inside the Oculus.</div>
+      </div>
+      <div class="panel" style="padding:14px 26px">
+        <div class="lbl">1st Category Chosen</div>
+        <div class="mich" style="font-size:34px;margin-top:8px;letter-spacing:.04em">${catLabel}</div>
+      </div>
+      <div class="panel" style="padding:12px 26px">
+        <div class="lbl">Floors Visited</div>
+        <div class="num" style="font-size:20px;margin-top:8px;letter-spacing:.08em;color:var(--titanium-pearl)">${floorsTrail}</div>
+      </div>
+      ${extraPanels}
+      ${is.outsideDestination ? `<div class="panel" style="padding:22px 26px">
+        <div class="lbl">Destination Chosen</div>
+        <div class="num" style="font-size:22px;margin-top:12px;letter-spacing:.06em;display:flex;align-items:center;gap:12px"><span style="color:var(--teal-bright)">${icon(M.outside.find(o=>o.key===is.outsideDestination)?.icon||'exit',24,1.6)}</span>${(M.outside.find(o=>o.key===is.outsideDestination)||{label:NA}).label}</div>
+      </div>` : ``}
+    </div>`;
+
+  const cells = `<div style="grid-column:2;display:grid;grid-template-columns:repeat(${statCells.length},1fr);gap:16px">${
+    statCells.map(c=>{ const v=c.money?fmtMoney(c.n):c.n; const vh=c.text?`<span class="num" style="font-size:26px;font-weight:600;line-height:1.15">${v}</span>`:`<span class="big num">${v}</span>`; return `<div class="stat-cell"><div class="top"><span class="ico">${icon(c.ic,34,1.6)}</span>${vh}</div><div class="lbl">${c.l}</div></div>`; }).join("")
+  }</div>`;
+
+  // purchases table
+  let purchasesTbl;
+  if(D.cat==="restroom"){
+    purchasesTbl = `<div class="empty-line">You prioritised a basic need.<br>No commercial interaction was logged.</div>`;
+  } else if(D.purchases.length===0){
+    purchasesTbl = `<div class="empty-line">No stores were opened during this session.</div>`;
+  } else {
+    purchasesTbl = `<table class="data-table"><thead><tr><th>Store</th><th>Floor</th><th>Price Level</th><th style="text-align:right">Selected Price</th></tr></thead><tbody>${
+      D.purchases.map(n=>{ const s=byId[n.storeId]; const pp=PRICE_PILL[n.decision]; return `<tr><td class="store-name">${s.name.toUpperCase()}</td><td class="num">${floorLabel(n.floor)}</td><td><span class="pill ${pp.cls}">${pp.label}</span></td><td class="num" style="text-align:right;font-size:18px;font-weight:600">${fmtMoney(n.pricePaid)}</td></tr>`; }).join("")
+    }</tbody><tfoot><tr><td colspan="3" style="color:var(--teal-bright);font-weight:600;letter-spacing:.1em;text-transform:uppercase;font-size:14px;border-bottom:0;padding-top:18px">Total Spent</td><td class="num" style="text-align:right;color:var(--teal-glow);font-size:22px;font-weight:600;border-bottom:0;padding-top:18px">${fmtMoney(D.totalSpent)}</td></tr></tfoot></table>`;
+  }
+
+  // rejected table
+  let rejectedTbl;
+  if(D.cat==="restroom"){
+    rejectedTbl = `<div class="empty-line">No commercial interaction was logged.</div>`;
+  } else if(D.rejected.length===0){
+    rejectedTbl = `<div class="empty-line">No stores were rejected during this session.</div>`;
+  } else {
+    rejectedTbl = `<table class="data-table"><thead><tr><th>Store</th><th>Floor</th><th style="text-align:right">Lowest Price</th><th style="text-align:right">Your Choice</th></tr></thead><tbody>${
+      D.rejected.map(n=>{ const s=byId[n.storeId]; return `<tr><td class="store-name">${s.name.toUpperCase()}</td><td class="num">${floorLabel(n.floor)}</td><td class="num" style="text-align:right;font-size:17px">${fmtMoney(s.entryPrice)}</td><td style="text-align:right;color:var(--amber);font-weight:600;letter-spacing:.06em;font-size:13px">${rejectWord}</td></tr>`; }).join("")
+    }</tbody></table>`;
+  }
+
+  const tables = isOutside ? `
+    <div style="grid-column:2;display:flex">
+      <div class="panel" style="flex:1;padding:38px 44px;display:flex;flex-direction:column;justify-content:center;background:linear-gradient(180deg,rgba(8,40,42,.4),var(--panel))">
+        <div class="lbl" style="color:var(--teal-bright)">Destination Chosen</div>
+        <div style="display:flex;align-items:center;gap:24px;margin-top:18px">
+          <span style="color:var(--teal-bright);flex:0 0 auto">${icon(dest.icon,58,1.4)}</span>
+          <div class="mich" style="font-size:54px;letter-spacing:.02em;line-height:1.05">${dest.label}</div>
+        </div>
+        <div class="num" style="font-size:20px;letter-spacing:.06em;margin-top:20px;color:var(--titanium-pearl)">${destType}</div>
+        <hr class="hair" style="margin:26px 0">
+        <div style="display:flex;align-items:flex-end;gap:48px">
+          <div><div class="lbl">Total Spent</div><div class="num" style="font-size:46px;font-weight:600;margin-top:8px">$0</div></div>
+          <div style="max-width:380px"><div class="muted" style="font-size:14px;line-height:1.6">This player chose to leave the Oculus${D.storesVisited?` after visiting ${D.storesVisited} ${D.storesVisited===1?'store':'stores'}`:` straight away`}. No purchase was made inside.</div></div>
+        </div>
+      </div>
+    </div>` : `
+    <div style="grid-column:2;display:grid;grid-template-columns:1.5fr 1fr;gap:18px;align-items:stretch">
+      <div class="panel" style="padding:22px 26px;display:flex;flex-direction:column"><div class="panel-t" style="margin-bottom:14px">Purchases</div>${purchasesTbl}</div>
+      <div class="panel" style="padding:22px 26px;display:flex;flex-direction:column"><div class="panel-t" style="margin-bottom:14px">Rejected Stores</div>${rejectedTbl}</div>
+    </div>`;
+
+  // path
+  const pathHtml = renderPath(D);
+  const nodeCount = Math.min((pathHtml.match(/class="path-node"/g)||[]).length, 6);
+  const pathPanel = `<div class="panel" style="grid-column:1 / span 2;padding:18px 26px;display:flex;flex-direction:column">
+      <div class="panel-t">Your Path</div>
+      <div class="muted" style="font-size:13px;margin-top:5px">A timeline of the stores you visited and your choices.</div>
+      <div style="flex:1;display:flex;align-items:center;min-height:0"><div class="path-row n${nodeCount}">${pathHtml}</div></div>
+    </div>`;
+
+  // footer highlight
+  let highlight;
+  if(isOutside){
+    const hs = [
+      { l:"Total Spent", v:"$0" },
+      { l:D.storesVisited===1?"Store Visited":"Stores Visited", v:String(D.storesVisited) },
+      { l:"Destination Type", v:destType, small:true }
+    ];
+    highlight = `<div style="display:flex;align-items:center;gap:44px"><div style="display:flex;align-items:center;gap:14px;color:var(--teal-bright)">${icon('exit',30,1.8)}<span class="panel-t">Session Highlight</span></div>${
+      hs.map(h=>`<div><div class="lbl">${h.l}</div><div class="num" style="font-size:${h.small?'22':'30'}px;font-weight:600;margin-top:6px">${h.v}</div></div>`).join("")
+    }</div>`;
+  } else {
+    const hs = [
+      { l:"Purchase Rate", v:fmtPct(D.purchaseRate) },
+      { l:"Store Rejection Rate", v:fmtPct(D.rejectionRate) },
+      { l:"Average Purchase", v:D.purchasesMade?fmtMoney(Math.round(D.avgPurchase)):NA }
+    ];
+    highlight = `<div style="display:flex;align-items:center;gap:44px"><div style="display:flex;align-items:center;gap:14px;color:var(--teal-bright)">${icon('bars',30,1.8)}<span class="panel-t">Session Highlight</span></div>${
+      hs.map(h=>`<div><div class="lbl">${h.l}</div><div class="num" style="font-size:30px;font-weight:600;margin-top:6px">${h.v}</div></div>`).join("")
+    }</div>`;
+  }
+  const footer = `<div style="grid-column:1 / span 2;display:flex;justify-content:space-between;align-items:center;gap:30px">
+      <div class="panel" style="padding:20px 30px;flex:1">${highlight}</div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:11px;flex:0 0 auto">
+        <span class="lbl" style="letter-spacing:.18em">See how you compare</span>
+        <button class="cta" id="v1-explore">Explore Synthesis <svg class="cta-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+      </div>
+    </div>`;
+
+  document.getElementById("v1-grid").innerHTML = left + cells + tables + pathPanel + footer;
+  document.getElementById("v1-explore").addEventListener("click",()=>showView(2));
+}
+
+function pathNode(inner, cap, floor, badge){
+  return `<div class="path-node">
+    ${floor?`<div class="path-floor">${floor}</div>`:'<div class="path-floor">&nbsp;</div>'}
+    ${inner}
+    ${cap?`<div class="path-cap">${cap}</div>`:''}
+  </div>`;
+}
+function renderPath(D){
+  const is = D.is;
+  const parts = [];
+  // start
+  const startIco = `<div class="path-card mini"><div class="path-ico">${icon(CAT_ICON[D.cat]||'clock',50,1.5)}</div><div class="num" style="font-size:17px;letter-spacing:.12em">${D.cat?CAT_LABEL[D.cat]:'—'}</div></div>`;
+  parts.push(pathNode(startIco,"START",null));
+  // restroom-only
+  if(D.cat==="restroom"){
+    parts.push(connector());
+    parts.push(pathNode(`<div class="path-card mini"><div class="path-ico">${icon('people',50,1.5)}</div><div class="num" style="font-size:17px;letter-spacing:.1em">RESTROOM</div></div>`,"BASIC NEED",null));
+  }
+  // store path with floor changes
+  let prevFloor = null;
+  (D.nodes||[]).forEach((n)=>{
+    if(prevFloor && n.floor!==prevFloor){
+      parts.push(connector());
+      parts.push(pathNode(`<div class="path-card mini"><div class="path-ico">${icon('stairs',50,1.5)}</div><div class="num" style="font-size:16px;letter-spacing:.08em;text-align:center">TO ${floorLong(n.floor)}</div></div>`,"",null));
+    }
+    parts.push(connector());
+    const s = byId[n.storeId];
+    const reject = n.decision==="wontShopHere";
+    const pill = reject ? `<span class="pill reject">${D.cat==="grabABite"?"WOULDN'T STOP HERE":"WOULDN'T SHOP HERE"}</span>` : `<span class="pill ${PRICE_PILL[n.decision].cls}">${PRICE_PILL[n.decision].label}</span>`;
+    const price = reject ? `<div class="num" style="font-size:22px;font-weight:600">${fmtMoney(s.entryPrice)}</div>` : `<div class="num" style="font-size:24px;font-weight:600">${fmtMoney(n.pricePaid)}</div>`;
+    const badge = `<div class="path-badge ${reject?'no':'ok'}">${reject?'<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#3a2400" stroke-width="2.6"><path d="M7 7l10 10M17 7L7 17"/></svg>':'<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#06201f" stroke-width="2.8"><path d="M5 12l5 5 9-10"/></svg>'}</div>`;
+    const card = `<div class="path-card">${badge}<div class="store-name" style="font-size:19px">${s.name.toUpperCase()}</div>${pill}${price}</div>`;
+    parts.push(pathNode(card, reject?"LOWEST PRICE":"PURCHASE", floorLong(n.floor)));
+    prevFloor = n.floor;
+  });
+  // end
+  if(is.endedBy==="went_outside"){
+    const dest = M.outside.find(o=>o.key===is.outsideDestination);
+    parts.push(connector());
+    parts.push(pathNode(`<div class="path-card mini"><div class="path-ico">${icon('exit',50,1.5)}</div><div class="num" style="font-size:16px;letter-spacing:.06em;text-align:center">WENT<br>OUTSIDE</div></div>`,"CHOICE",null));
+    parts.push(connector());
+    parts.push(pathNode(`<div class="path-card mini"><div class="path-ico">${icon(dest?.icon||'exit',50,1.5)}</div><div class="num" style="font-size:15px;letter-spacing:.04em;text-align:center;line-height:1.25">${(dest?.label||NA).toUpperCase()}</div></div>`,"DESTINATION",null));
+    parts.push(connector());
+    parts.push(pathNode(`<div class="path-card mini"><div class="path-ico">${icon('clock',50,1.5)}</div><div class="num" style="font-size:16px;letter-spacing:.08em">SESSION END</div></div>`,"",null));
+  } else {
+    parts.push(connector());
+    parts.push(pathNode(`<div class="path-card mini"><div class="path-ico">${icon('clock',50,1.5)}</div><div class="num" style="font-size:17px;letter-spacing:.1em">TIME'S UP</div></div>`,"SESSION END",null));
+  }
+  return parts.join("");
+}
+function connector(){ return `<div class="connector"><div class="dl"></div></div>`; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   RENDER — VIEW 2 (synthesis)
+   ═══════════════════════════════════════════════════════════════════ */
+const V2 = { metric:"refusalRate", floor:1, sortKey:"refusalRate", sortDir:"desc" };
+const METRIC_LABEL = { refusalRate:"Refusal Rate", timesOpened:"Times Opened", entryPrice:"Most Affordable", highPrice:"Most Expensive" };
+const METRIC_DESC = { refusalRate:"Ranked by refusal rate \u2014 highest first. Stores opened fewer than 4 times are excluded as too small a sample.", timesOpened:"Ranked by times opened \u2014 most first.", entryPrice:"Ranked by entry price \u2014 most affordable first.", highPrice:"Ranked by price \u2014 most expensive first." };
+function setMetric(m){
+  V2.metric=m; V2.sortKey=m; V2.sortDir = m==="entryPrice" ? "asc" : "desc";
+  document.querySelectorAll("#metric-toggle button").forEach(x=>x.classList.toggle("on",x.dataset.metric===m));
+  const sel=document.getElementById("rank-sort"); if(sel) sel.value=m;
+  renderRankAndMap();
+}
+const MAP_SLOTS = [ {x:23,y:40},{x:50,y:30},{x:75,y:37},{x:83,y:60},{x:60,y:64},{x:37,y:57} ];
+
+function floorFilter(list){
+  // V2.floor is 1, 2, or "BOTH". Store floor is the integer 1 or 2.
+  // Apple exists as two catalog entries (apple-1st / apple-2nd) so it needs
+  // no special case here.
+  if(V2.floor==="BOTH") return list;
+  return list.filter(s=>Number(s.floor)===Number(V2.floor));
+}
+function metricValue(s,key){ return s[key]; }
+function fmtMetric(s,key){
+  if(key==="refusalRate") return fmtPct(s.refusalRate);
+  if(key==="timesOpened") return String(s.timesOpened);
+  return fmtMoney(s[key]);
+}
+const MIN_OPENS = 4;   // refusal rate off 1-2 interactions is noise, not signal
+function sortStores(list){
+  const dir = V2.sortDir==="desc"?-1:1;
+  const alpha = ["name","type","floor"].includes(V2.sortKey);
+  return [...list].sort((a,b)=>{
+    if(alpha){ const av=String(a[V2.sortKey]), bv=String(b[V2.sortKey]); return av<bv?dir:av>bv?-dir:0; }
+    if(V2.sortKey==="refusalRate"){
+      // stores below the sample threshold sink to the bottom rather than
+      // topping the chart on a single interaction
+      const aOK=a.timesOpened>=MIN_OPENS, bOK=b.timesOpened>=MIN_OPENS;
+      if(aOK!==bOK) return aOK?-1:1;
+    }
+    return (a[V2.sortKey]-b[V2.sortKey])*dir;
+  });
+}
+
+function renderView2Static(){
+  document.getElementById("v2-meta").textContent = `N = ${M.N} USERS  ·  ${M.period}`;
+  document.getElementById("rank-sub").textContent = `Ranked by ${METRIC_LABEL[V2.metric].toLowerCase()} (high to low).`;
+  // primary bars
+  document.getElementById("primary-bars").innerHTML = M.primary.map(p=>`
+    <div class="choice-row">
+      <span class="ci">${icon(p.icon,26,1.8)}</span>
+      <span class="cn">${p.label}</span>
+      <span class="bar-track"><span class="bar-fill" data-w="${(p.count/M.primaryMax*100).toFixed(1)}" style="width:0"></span></span>
+      <span class="cc num">${p.count}</span>
+      <span class="cp num">${fmtPct(p.pct,1)}</span>
+    </div>`).join("");
+  document.getElementById("multi-line").textContent = `${fmtPct(M.multiPct,1)} of users selected more than one activity during the session.`;
+
+  // price donut
+  const segs = [
+    { value:M.entrySel, color:"var(--teal)" },
+    { value:M.typSel, color:"var(--teal-deep)" },
+    { value:M.highSel, color:"var(--titanium-pearl)" },
+    { value:M.wontSel, color:"var(--amber)" }
+  ];
+  document.getElementById("price-donut").innerHTML = donut(segs,168,30) + `<div style="text-align:center;margin-top:10px"><div class="lbl" style="font-size:12px;letter-spacing:.12em">Total store decisions</div><div class="num" style="font-size:24px;font-weight:600;color:var(--titanium-pearl);margin-top:3px">${M.totalDecisions}</div></div>`;
+  document.getElementById("price-legend").innerHTML = [
+    { c:"var(--teal)", t:"Low point selected", d:`${M.entrySel} decisions (${fmtPct(M.entrySel/M.totalDecisions)})` },
+    { c:"var(--teal-deep)", t:"Mid point selected", d:`${M.typSel} decisions (${fmtPct(M.typSel/M.totalDecisions)})` },
+    { c:"var(--titanium-pearl)", t:"High point selected", d:`${M.highSel} decisions (${fmtPct(M.highSel/M.totalDecisions)})` },
+    { c:"var(--amber)", t:"Won't shop here", d:`${M.wontSel} decisions (${fmtPct(M.wontSel/M.totalDecisions)})`, amber:true }
+  ].map(r=>`<div class="dl-row"><span class="sw" style="background:${r.c}"></span><div><div class="dt" style="${r.amber?'color:var(--amber)':''}">${r.t}</div><div class="dd">${r.d}</div></div></div>`).join("");
+  document.getElementById("price-summary").innerHTML = `
+    <div style="flex:1"><span class="num" style="font-size:30px;font-weight:600">${fmtPct(M.entrySel/M.totalDecisions)}</span><div class="lbl" style="margin-top:2px">Selected the lowest price point</div></div>
+    <div style="flex:1;border-left:1px solid var(--border-soft);padding-left:14px"><span class="num" style="font-size:30px;font-weight:600">${fmtPct(M.wontSel/M.totalDecisions)}</span><div class="lbl" style="margin-top:2px">Rejected the store entirely</div></div>`;
+
+  // go outside
+  document.getElementById("outside-big").innerHTML = `<div class="num" style="font-size:44px;font-weight:600;line-height:1">${M.goOutsideCount}</div><div class="lbl" style="line-height:1.4;margin-top:8px">Users chose to leave the Oculus</div><div class="num" style="font-size:26px;font-weight:600;margin-top:14px;color:var(--teal-glow)">${fmtPct(M.goOutsidePct,1)}</div><div class="lbl" style="margin-top:3px">of all users</div>`;
+  const omax = Math.max(...M.outside.map(o=>o.count),1);
+  document.getElementById("outside-list").innerHTML = `<div class="lbl" style="margin-bottom:8px">Destination breakdown (of ${M.goOutsideCount} users)</div>${
+    M.outside.map(o=>`<div class="dest-row"><span class="di">${icon(o.icon,22,1.5)}</span><span style="letter-spacing:.04em">${o.label}</span><span class="bar-track" style="height:11px"><span class="bar-fill" style="width:${(o.count/omax*100).toFixed(0)}%"></span></span><span class="num" style="text-align:right">${o.count} ${o.count===1?'user':'users'}</span><span class="num muted" style="text-align:right">${fmtPct(o.pct)}</span></div>`).join("")
+  }`;
+
+  // takeaways
+  const topStore = [...M.storeStats].filter(s=>s.timesOpened>=MIN_OPENS).sort((a,b)=>b.refusalRate-a.refusalRate);
+  const t1 = M.primary.reduce((a,b)=>b.count>a.count?b:a);
+  // ── statistics the frozen schema makes possible ──
+  const mmss = s => `${Math.floor(s/60)}:${String(Math.round(s%60)).padStart(2,"0")}`;
+  const never = M.neverOpened.map(s=>s.name);
+  document.getElementById("schema-stats").innerHTML = `
+    <div class="ss">
+      <div class="ssv">${fmtPct(M.zeroSpendPct)}</div>
+      <div class="ssl">Of sessions spent nothing at all</div>
+      <div class="ssn">${M.zeroSpendCount} of ${M.N} sessions</div>
+    </div>
+    <div class="ss never">
+      <div class="ssv">${M.neverOpenedCount}</div>
+      <div class="ssl">Stores no one ever opened</div>
+      <div class="names">${never.length ? never.join(" \u00b7 ") : "Every store was opened at least once."}</div>
+    </div>
+    <div class="ss">
+      <div class="ssv">${mmss(M.avgLeaveSeconds)}</div>
+      <div class="ssl">Average time inside before walking out</div>
+      <div class="ssn">${M.wentOutsideCount} of ${M.N} sessions left the building</div>
+    </div>`;
+
+  document.getElementById("takeaways").innerHTML = `
+    <div class="tk"><div class="tkico">${icon('bulb',26,2.6)}</div><span class="panel-t" style="font-size:17px">Key Takeaways</span></div>
+    ${[
+      { ic:"bag", t:`<b>${t1.label}</b> was the most common first choice, selected by <b>${fmtPct(t1.pct,1)}</b> of users.` },
+      { ic:"star", t:`<b>${topStore[0].name}</b> had the highest refusal rate (<b>${fmtPct(topStore[0].refusalRate)}</b>), followed by ${topStore[1].name} (${fmtPct(topStore[1].refusalRate)}).` },
+      { ic:"tag", t:`<b>${fmtPct(M.entrySel/M.totalDecisions)}</b> of all store interactions resolved to the lowest price point.` },
+      { ic:"exit", t:`<b>${fmtPct(M.goOutsidePct,1)}</b> of users chose to leave the Oculus, most for the 9/11 Memorial.` }
+    ].map(k=>`<div class="tk"><div class="tkico">${icon(k.ic,26,2.6)}</div><div class="tkt">${k.t}</div></div>`).join("")}`;
+
+  buildLegend();
+  renderRankAndMap();
+}
+
+function buildLegend(){
+  const sizes=[16,14,12,11,10,9], op=[1,.82,.66,.52,.42,.34];
+  const top=M.currentTopSix||[];
+  let rows = `<div class="lbl" style="font-size:12px;color:var(--teal-bright)">${METRIC_LABEL[V2.metric]}</div><div class="muted" style="font-size:12px;letter-spacing:.04em;margin-top:2px">Size &amp; brightness follow the current ranking, 1st → 6th.</div>`;
+  top.forEach((s,i)=>{ rows+=`<div class="lg-row"><span class="dot" style="width:${sizes[i]}px;height:${sizes[i]}px;opacity:${op[i]};box-shadow:0 0 ${8*op[i]}px rgba(60,207,207,${op[i]})"></span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:128px;color:var(--titanium-pearl)">${s.name}</span></div>`; });
+  document.getElementById("map-legend").innerHTML = rows;
+}
+
+function renderRankAndMap(){
+  const filtered = floorFilter(M.storeStats);
+  const sorted = sortStores(filtered);
+  const top6 = sorted.slice(0,6);
+  const top6ids = new Set(top6.map(s=>s.id));
+  M.currentTopSix = top6;
+
+  // table — exactly the current top 6, no scroll
+  const priceCol = V2.metric==="highPrice" ? {key:"highPrice",label:"Highest"} : {key:"entryPrice",label:"Lowest"};
+  const cols = [
+    { key:null, label:"Rank" },
+    { key:"name", label:"Store" },
+    { key:"floor", label:"Floor" },
+    { key:"timesOpened", label:"Opened" },
+    { key:"refusalRate", label:"Refusal Rate" },
+    priceCol
+  ];
+  const head = cols.map(c=>{
+    if(!c.key) return `<th>${c.label}</th>`;
+    const on = V2.sortKey===c.key;
+    const arr = on ? (V2.sortDir==="desc"?"▼":"▲") : "";
+    return `<th data-col="${c.key}" class="${on?'sorted':''}">${c.label} <span class="arr">${arr}</span></th>`;
+  }).join("");
+  const mAct = k => V2.metric===k ? ' metric-active' : '';
+  const rows = top6.map((s,i)=>`<tr>
+    <td class="num">${i+1}</td>
+    <td class="store-name" style="font-size:12px">${s.name.toUpperCase()}</td>
+    <td class="num">${floorLabel(s.floor)}</td>
+    <td class="num${mAct('timesOpened')}">${s.timesOpened}</td>
+    <td class="num er-cell${mAct('refusalRate')}">${fmtPct(s.refusalRate)}</td>
+    <td class="num${(V2.metric==='entryPrice'||V2.metric==='highPrice')?' metric-active':''}">${fmtMoney(s[priceCol.key])}</td>
+  </tr>`).join("");
+  const tbl = document.getElementById("rank-tbl");
+  tbl.innerHTML = `<thead><tr>${head}</tr></thead><tbody>${rows}</tbody>`;
+  tbl.querySelectorAll("th[data-col]").forEach(th=>{
+    th.addEventListener("click",()=>{
+      const k = th.dataset.col;
+      if(V2.sortKey===k){ V2.sortDir = V2.sortDir==="desc"?"asc":"desc"; }
+      else { V2.sortKey=k; V2.sortDir=["name","type","floor"].includes(k)?"asc":"desc"; }
+      renderRankAndMap();
+    });
+  });
+  document.getElementById("rank-sub").textContent = METRIC_DESC[V2.metric] || METRIC_DESC.refusalRate;
+
+  // map points
+  const wrap = document.getElementById("map-points");
+  const sizes=[46,40,34,29,25,22], op=[1,.84,.68,.54,.44,.35];
+  wrap.innerHTML = top6.map((s,i)=>{
+    const slot = MAP_SLOTS[i];
+    const sz = sizes[i], o = op[i];
+    return `<div class="mpt" data-id="${s.id}" tabindex="0" style="left:${slot.x}%;top:${slot.y}%">
+      <div class="mpt-label"><div class="n">${s.name.toUpperCase()}</div><div class="v">${fmtMetric(s,V2.metric)}</div></div>
+      <div class="ring" style="width:${sz}px;height:${sz}px;opacity:${o}"></div>
+      <div class="core" style="width:${sz}px;height:${sz}px;opacity:${Math.max(o,.5)}"></div>
+    </div>`;
+  }).join("");
+  wrap.querySelectorAll(".mpt").forEach(pt=>{
+    pt.addEventListener("mouseenter",e=>showTip(pt.dataset.id,pt));
+    pt.addEventListener("mouseleave",hideTip);
+    pt.addEventListener("focus",e=>showTip(pt.dataset.id,pt));
+    pt.addEventListener("blur",hideTip);
+  });
+  buildLegend();
+}
+
+function showTip(id,pt){
+  const s = M.byIdStat[id];
+  const tip = document.getElementById("map-tooltip");
+  tip.innerHTML = `<div class="tt-n">${s.name}</div>
+    ${[["Floor",floorLong(s.floor)],["Type",catLabel(s.type)],["Times opened",s.timesOpened],["Refusal rate",fmtPct(s.refusalRate)],["Lowest price",fmtMoney(s.entryPrice)],["Highest price",fmtMoney(s.highPrice)]].map(r=>`<div class="tt-r"><span>${r[0]}</span><b>${r[1]}</b></div>`).join("")}`;
+  const wrap = document.getElementById("map-wrap").getBoundingClientRect();
+  const pr = pt.getBoundingClientRect();
+  const scale = wrap.width/ document.getElementById("map-wrap").offsetWidth;
+  tip.style.display="block";
+  let x = pt.offsetLeft/ (document.getElementById("map-points").offsetWidth) ; // fallback
+  // position relative to map-wrap using percentage slot
+  const leftPct = parseFloat(pt.style.left), topPct=parseFloat(pt.style.top);
+  const mw = document.getElementById("map-wrap");
+  let px = leftPct/100*mw.offsetWidth + 26;
+  let py = topPct/100*mw.offsetHeight + 20;
+  if(px + 230 > mw.offsetWidth) px = leftPct/100*mw.offsetWidth - 236;
+  if(py + 200 > mw.offsetHeight) py = mw.offsetHeight - 210;
+  tip.style.left = px+"px"; tip.style.top = py+"px";
+}
+function hideTip(){ document.getElementById("map-tooltip").style.display="none"; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   RENDER — VIEW 3 (the gap)
+   ═══════════════════════════════════════════════════════════════════ */
+function renderView3(){
+  document.getElementById("offer-figs").innerHTML = [
+    { v:String(M.totalStores), l:"Stores surveyed" },
+    { v:fmtPct(M.typicalOver100Pct), l:"Typical price above $100" },
+    { v:fmtMoney(M.medianTypical), l:"Median typical price" },
+    { v:String(M.typicalOver500), l:"Typical price ≥ $500" }
+  ].map(f=>`<div class="fig"><div class="fv num" style="color:var(--teal-bright)">${f.v}</div><div class="fl">${f.l}</div></div>`).join("");
+
+  const distCell = (b,i)=>{
+    const op = 0.05 + i*0.07; // deepen teal toward the higher price bands
+    return `<div class="dist-cell" style="background:linear-gradient(180deg,rgba(44,224,210,${op*0.5}),rgba(44,224,210,${op+0.06}));border-color:rgba(44,224,210,${0.28+i*0.1})"><div class="dband">${b.label}</div><div class="dpct num">${fmtPct(b.pct)}</div><div class="dcnt">${b.count} stores</div></div>`;
+  };
+  document.getElementById("typical-dist").innerHTML = M.typicalBands.map((b,i)=>distCell(b,i)).join("");
+
+  const um2 = SESSION_DATA.userMetrics;
+  document.getElementById("chose-figs").innerHTML = [
+    { v:fmtPct(M.choseShopPct), l:"Chose shop first", n:SESSION_DATA.primaryChoice.shop },
+    { v:fmtPct(M.openedRetailPct), l:"Opened a retail store", n:um2.openedRetail },
+    { v:fmtPct(M.purchasePct), l:"Completed a purchase", n:um2.completedPurchase },
+    { v:fmtPct(M.rejectedAnyPct), l:"Selected \u201cwon't shop here\u201d", n:um2.rejectedAny },
+    { v:fmtPct(M.goOutsidePct,1), l:"Left the Oculus", n:M.goOutsideCount }
+  ].map(f=>`<div class="fig"><div class="fv num" style="color:var(--amber);font-size:29px">${f.v}</div><div class="fl">${f.l}</div><div class="fn">${f.n} of ${M.N}</div></div>`).join("");
+
+  const segs=[ {value:M.entrySel,color:"var(--teal)"},{value:M.typSel,color:"var(--teal-deep)"},{value:M.highSel,color:"var(--titanium-pearl)"},{value:M.wontSel,color:"var(--amber)"} ];
+  document.getElementById("chose-donut").innerHTML = donut(segs,150,26,null,null);
+  document.getElementById("chose-legend").innerHTML = [
+    { c:"var(--teal)", p:fmtPct(M.entrySel/M.totalDecisions), t:"Low point selected", s:"($)" },
+    { c:"var(--teal-deep)", p:fmtPct(M.typSel/M.totalDecisions), t:"Mid point selected", s:"($$)" },
+    { c:"var(--titanium-pearl)", p:fmtPct(M.highSel/M.totalDecisions), t:"High point selected", s:"($$$)" },
+    { c:"var(--amber)", p:fmtPct(M.wontSel/M.totalDecisions), t:"Won't shop here", s:"", amber:true }
+  ].map(r=>`<div class="dl-row"><span class="sw" style="background:${r.c}"></span><div style="display:flex;gap:8px;align-items:baseline"><span class="num" style="font-weight:600;font-size:14px;${r.amber?'color:var(--amber)':''}">${r.p}</span><span class="dt" style="font-weight:500;${r.amber?'color:var(--amber)':''}">${r.t}</span><span class="muted" style="font-size:11px">${r.s}</span></div></div>`).join("");
+  document.getElementById("median-spend").textContent = fmtMoney(M.medianSpend);
+
+  renderLineChart();
+
+  // example stores
+  const sw = M.byIdStat["swarovski"], lo = M.byIdStat["longines"];
+  document.getElementById("example-stores").innerHTML = [
+    { s:sw, color:"var(--amber)", dash:"solid", ic:'<path d="M12 3l4 5-4 5-4-5 4-5zM8 8h8M6 13l6 8 6-8"/>' },
+    { s:lo, color:"var(--amber)", dash:"dashed", ic:'<circle cx="12" cy="13" r="6"/><path d="M12 10v3l2 1M9 4h6M12 4v3"/>' }
+  ].map(e=>`<div class="ex-card" style="flex:1;border:1px ${e.dash} ${e.color};background:linear-gradient(180deg,rgba(255,176,32,.07),transparent)">
+      <div style="color:${e.color}">${'<svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round">'+e.ic+'</svg>'}</div>
+      <div class="store-name" style="font-size:18px">${e.s.name.toUpperCase()}</div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:2px"><div class="num" style="font-size:38px;font-weight:600;color:${e.color}">${fmtPct(e.s.refusalRate)}</div><div class="lbl">Refusal rate</div></div>
+      <hr class="hair" style="width:100%;margin:0">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:2px"><div class="lbl">Entry price</div><div class="num" style="font-size:22px;font-weight:600;color:var(--teal-bright)">${fmtMoney(e.s.entryPrice)}</div></div>
+    </div>`).join("");
+
+  // observations
+  document.getElementById("observations").innerHTML = [
+    { ic:"xcircle", color:"var(--amber)", v:`${fmtPct(M.rejectAbove500.rate)} rejection at high prices`, d:`${fmtPct(M.rejectAbove500.rate)} of interactions at stores with entry prices above $500 resulted in "Won't Shop Here".` },
+    { ic:"trend", color:"var(--amber)", v:`${M.refusalMultiple.toFixed(1)}× more refusals`, d:`Stores whose cheapest item is over $500 were refused ${M.refusalMultiple.toFixed(1)}× as often as stores under $100.` },
+    { ic:"exit", color:"var(--teal-bright)", v:`${fmtPct(M.goOutsidePct,1)} left the Oculus`, d:`${M.goOutsideCount} of ${M.N} users chose to spend their remaining time outside the building.` }
+  ].map(o=>`<div class="obs-row"><div class="oi" style="border-color:${o.color};color:${o.color}">${icon(o.ic,22,2.4)}</div><div><div class="ov" style="color:${o.color}">${o.v}</div><div class="od">${o.d}</div></div></div>`).join("");
+}
+
+function renderLineChart(){
+  const W=940,H=300,padL=46,padR=24,padT=14,padB=44;
+  const iw=W-padL-padR, ih=H-padT-padB;
+  const bands = M.lineBands;
+  const n = bands.length;
+  const xs = i=> padL + (n===1?iw/2:(iw*i/(n-1)));
+  const maxY = 100;
+  const y = v=> padT + ih - (Math.min(v*100,maxY)/maxY*ih);
+  const grid = [0,20,40,60,80,100].map(g=>`<line x1="${padL}" y1="${y(g/100)}" x2="${W-padR}" y2="${y(g/100)}" stroke="rgba(80,85,86,.22)" stroke-width="1"/><text x="${padL-10}" y="${y(g/100)+5}" text-anchor="end" fill="var(--titanium-pearl)" font-size="15" font-family="Space Grotesk">${g}</text>`).join("");
+  const line = (key,color,dash)=>{
+    const pts = bands.map((b,i)=>`${xs(i)},${y(b[key])}`).join(" ");
+    const dots = bands.map((b,i)=>`<circle cx="${xs(i)}" cy="${y(b[key])}" r="7" fill="${color}"/><text x="${xs(i)}" y="${y(b[key])-16}" text-anchor="middle" fill="${color}" font-size="18" font-weight="600" font-family="Space Grotesk">${fmtPct(b[key])}</text>`).join("");
+    return `<polyline points="${pts}" fill="none" stroke="${color}" stroke-width="3.2"${dash?` stroke-dasharray="10 7"`:``}/>${dots}`;
+  };
+  const xlabels = bands.map((b,i)=>`<text x="${xs(i)}" y="${H-16}" text-anchor="middle" fill="var(--titanium-pearl)" font-size="16" font-family="Space Grotesk">${b.label}</text>`).join("");
+  document.getElementById("line-chart").innerHTML = `
+    <svg viewBox="0 0 ${W} ${H}" width="100%" preserveAspectRatio="xMidYMid meet" style="flex:1;min-height:0">
+      <text x="8" y="16" fill="var(--titanium-pearl)" font-size="13" font-family="Space Grotesk">RATE (%)</text>
+      ${grid}
+      ${line("reject","var(--amber)",false)}
+      ${line("lowShare","var(--amber)",true)}
+      ${xlabels}
+    </svg>
+    <div style="display:flex;gap:34px;justify-content:center;margin-top:8px;font-size:14px">
+      <span style="display:flex;align-items:center;gap:8px"><span style="width:26px;height:3px;background:var(--amber);display:inline-block"></span>Refused the store</span>
+      <span style="display:flex;align-items:center;gap:8px"><span style="width:26px;height:0;border-top:3px dashed var(--amber);display:inline-block"></span>Of buyers, took the cheapest tier</span>
+    </div>`;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   RENDER — VIEW 4 (ending)
+   ═══════════════════════════════════════════════════════════════════ */
+function renderView4(){
+  const stats = {
+    tl: { el:"v4-tl", v:fmtPct(M.typicalOver100Pct), color:"#E24FD1", angle:"215deg", d:"Of the current retail mix has a typical price above $100", cap:"Current retail offering" },
+    tr: { el:"v4-tr", v:fmtPct(M.rejectAbove100.rate), color:"#FFB020", angle:"145deg", d:"Selected \u201cwon't shop here\u201d at stores above $100", cap:"Mismatch indicator" },    bl: { el:"v4-bl", v:fmtPct(M.entrySel/M.totalDecisions), color:"#3CCFCF", angle:"305deg", d:"Selected the lowest price point", cap:"Commuter behaviour" },
+    br: { el:"v4-br", v:fmtPct(M.restroomPctVal,1), color:"#3CCFCF", angle:"55deg", d:"Prioritised a basic need first", cap:"Commuter behaviour" }
+  };
+  Object.values(stats).forEach(s=>{
+    const el=document.getElementById(s.el);
+    el.style.setProperty("--cc", s.color);
+    el.style.setProperty("--frame", `linear-gradient(${s.angle}, rgba(0,0,0,0) 0%, ${s.color} 34%, ${s.color} 56%, rgba(0,0,0,0) 100%)`);
+    el.innerHTML = `<div class="sv num">${s.v}</div><div class="sd">${s.d}</div>${s.cap?`<div class="sc">${s.cap}</div>`:''}`;
+  });
+  drawLeaders();
+}
+function drawLeaders(){
+  const svg = document.getElementById("v4-leaders");
+  const P="#E24FD1", A="#FFB020", T="#3CCFCF";
+  const L = [
+    { id:"lp", c:P, dot:[480,375], end:[660,432], d:"M480 375 L600 388 L660 432" },
+    { id:"la", c:A, dot:[1440,375], end:[1260,432], d:"M1440 375 L1320 388 L1260 432" },
+    { id:"lt1", c:T, dot:[530,650], end:[660,596], d:"M530 650 L610 638 L660 596" },
+    { id:"lt2", c:T, dot:[1390,650], end:[1260,596], d:"M1390 650 L1310 638 L1260 596" }
+  ];
+  const defs = L.map(l=>`<linearGradient id="grad-${l.id}" gradientUnits="userSpaceOnUse" x1="${l.dot[0]}" y1="${l.dot[1]}" x2="${l.end[0]}" y2="${l.end[1]}"><stop offset="0" stop-color="${l.c}" stop-opacity=".9"/><stop offset="1" stop-color="${l.c}" stop-opacity="0"/></linearGradient>`).join("");
+  const paths = L.map(l=>`<path d="${l.d}" fill="none" stroke="url(#grad-${l.id})" stroke-width="1.4"/><circle cx="${l.dot[0]}" cy="${l.dot[1]}" r="10" fill="${l.c}" opacity=".18"/><circle cx="${l.dot[0]}" cy="${l.dot[1]}" r="3.4" fill="${l.c}"/>`).join("");
+  svg.innerHTML = `<defs>${defs}</defs>${paths}`;
+}
+
+let trailRAF=null;
+function startTrail(){
+  const cv=document.getElementById("v4-trail"), ctx=cv.getContext("2d");
+  if(reduceMotion){ ctx.clearRect(0,0,cv.width,cv.height); return; }
+  let t=0;
+  function frame(){
+    t+=0.006;
+    ctx.clearRect(0,0,cv.width,cv.height);
+    for(let k=0;k<4;k++){
+      ctx.beginPath();
+      const yb = 300 - k*22;
+      for(let x=0;x<=760;x+=8){
+        const y = yb + Math.sin(x*0.012 + t + k*0.7)*28 - x*0.12;
+        x===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+      }
+      const grad=ctx.createLinearGradient(0,0,760,0);
+      grad.addColorStop(0,"rgba(11,69,70,0)");
+      grad.addColorStop(0.5,`rgba(60,207,207,${0.10+k*0.03})`);
+      grad.addColorStop(1,`rgba(141,232,224,${0.16+k*0.03})`);
+      ctx.strokeStyle=grad; ctx.lineWidth=1.4; ctx.stroke();
+    }
+    trailRAF=requestAnimationFrame(frame);
+  }
+  cancelAnimationFrame(trailRAF); frame();
+}
+function stopTrail(){ if(trailRAF) cancelAnimationFrame(trailRAF); }
+
+/* ═══════════════════════════════════════════════════════════════════
+   COUNT-UP animation on view enter
+   ═══════════════════════════════════════════════════════════════════ */
+function animateCountUps(root){
+  if(reduceMotion) return;
+  root.querySelectorAll(".num").forEach(el=>{
+    if(parseFloat(getComputedStyle(el).fontSize) < 30) return; // large figures only
+    const txt = el.textContent.trim();
+    const m = txt.match(/^(\$?)([\d,]+(?:\.\d+)?)(%?)$/);
+    if(!m) return;
+    const prefix=m[1], suffix=m[3];
+    const target = parseFloat(m[2].replace(/,/g,""));
+    if(isNaN(target)||target===0) return;
+    const dec = (m[2].split(".")[1]||"").length;
+    const dur=850, t0=performance.now();
+    function step(now){
+      const p=Math.min((now-t0)/dur,1);
+      const e=1-Math.pow(1-p,3);
+      const val=target*e;
+      const s = prefix + (dec? val.toFixed(dec) : Math.round(val).toLocaleString("en-US")) + suffix;
+      el.textContent=s;
+      if(p<1) requestAnimationFrame(step); else el.textContent=txt;
+    }
+    requestAnimationFrame(step);
+  });
+}
+
+/* animate primary bars width on enter */
+function animateBars(){
+  document.querySelectorAll("#primary-bars .bar-fill").forEach(b=>{ b.style.width=b.dataset.w+"%"; });
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   VIEW NAVIGATION
+   ═══════════════════════════════════════════════════════════════════ */
+let current=1;
+function showView(n){
+  current=n;
+  document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
+  const v=document.getElementById("view"+n);
+  v.classList.add("active");
+  animateCountUps(v);
+  if(n===2){ animateBars(); maybeTutorial(); }
+  if(n===4){ startTrail(); } else { stopTrail(); }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   TUTORIAL (View 2, first load only)
+   ═══════════════════════════════════════════════════════════════════ */
+const TUT_STEPS = [
+  { target:"#metric-toggle", body:"Switch metrics to re-rank the dataset. The table and the map always show the same six stores.", pos:"below" },
+  { target:"#floor-toggle", body:"Compare the two retail floors, or view them together.", pos:"below" },
+  { target:"#rank-panel", body:"All 50 stores are ranked here. Click any column header to reverse the order.", pos:"right" },
+  { target:"#map-points", body:"The brightest point is ranked first under the current filter. Hover any point for the full store record.", pos:"left" }
+];
+let tutIdx=0;
+function maybeTutorial(){
+  if(sessionStorage.getItem("oculus_tutorial_done")) return;
+  tutIdx=0;
+  document.getElementById("tutorial").classList.add("on");
+  showTutStep();
+}
+function showTutStep(){
+  const step=TUT_STEPS[tutIdx];
+  const stage=document.getElementById("stage");
+  const target=document.querySelector(step.target);
+  const sr=stage.getBoundingClientRect(), tr=target.getBoundingClientRect();
+  const scale = sr.width/1920;
+  // convert target rect into stage (unscaled) coords
+  const x=(tr.left-sr.left)/scale, y=(tr.top-sr.top)/scale, w=tr.width/scale, h=tr.height/scale;
+  const pad=10;
+  const hole=document.getElementById("tut-hole");
+  hole.style.left=(x-pad)+"px"; hole.style.top=(y-pad)+"px"; hole.style.width=(w+pad*2)+"px"; hole.style.height=(h+pad*2)+"px";
+  const card=document.getElementById("tut-card");
+  document.getElementById("tc-step").textContent=`Step ${tutIdx+1} of ${TUT_STEPS.length}`;
+  document.getElementById("tc-body").textContent=step.body;
+  document.getElementById("tc-next").textContent = tutIdx===TUT_STEPS.length-1?"Got it":"Next";
+  // place card
+  let cx,cy;
+  if(step.pos==="below"){ cx=x; cy=y+h+40; }
+  else if(step.pos==="right"){ cx=x+w+40; cy=y+20; }
+  else { cx=x-380; cy=y+30; }
+  cx=Math.max(20,Math.min(cx,1920-360)); cy=Math.max(20,Math.min(cy,1080-220));
+  card.style.left=cx+"px"; card.style.top=cy+"px";
+  // arrow
+  const arrow=document.getElementById("tut-arrow");
+  arrow.style.left=(x+w/2-10)+"px"; arrow.style.top=(y+h+6)+"px"; arrow.textContent="▲";
+  arrow.style.display = step.pos==="below"?"block":"none";
+}
+function endTutorial(){
+  document.getElementById("tutorial").classList.remove("on");
+  sessionStorage.setItem("oculus_tutorial_done","1");
+}
+
+/* game entry point placeholder */
+function startSimulation(){
+  // ── CONNECT GAME HERE ──────────────────────────────────────────
+  // Wire this to the simulation's entry point / route. For the
+  // prototype it returns the viewer to the individual result screen.
+  console.log("startSimulation() → game start");
+  showView(1);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   STAGE SCALING
+   ═══════════════════════════════════════════════════════════════════ */
+function fitStage(){
+  const s=Math.min(window.innerWidth/1920, window.innerHeight/1080);
+  document.getElementById("stage").style.transform=`scale(${s})`;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   INIT
+   ═══════════════════════════════════════════════════════════════════ */
+function init(){
+  buildModel();
+  fitStage();
+  window.addEventListener("resize",fitStage);
+
+  // DEV preview control
+  if(!DEV_MODE){ const pc=document.getElementById("preview-ctl"); if(pc) pc.remove(); }
+  else {
+    document.getElementById("preview-select").addEventListener("change",e=>{
+      renderView1(PREVIEW_SESSIONS[e.target.value]);
+      animateCountUps(document.getElementById("view1"));
+    });
+  }
+
+  renderView1(SESSION_DATA.individualSession);
+  renderView2Static();
+  renderView3();
+  renderView4();
+
+  // metric / floor toggles
+  document.getElementById("metric-toggle").addEventListener("click",e=>{
+    const b=e.target.closest("button"); if(!b) return;
+    setMetric(b.dataset.metric);
+  });
+  document.getElementById("rank-sort").addEventListener("change",e=>setMetric(e.target.value));
+  document.getElementById("floor-toggle").addEventListener("click",e=>{
+    const b=e.target.closest("button"); if(!b) return;
+    V2.floor = b.dataset.floor==="BOTH" ? "BOTH" : Number(b.dataset.floor);
+    document.querySelectorAll("#floor-toggle button").forEach(x=>x.classList.toggle("on",x===b));
+    renderRankAndMap();
+  });
+
+  // nav
+  document.getElementById("v2-back").addEventListener("click",()=>showView(1));
+  document.getElementById("v2-fwd").addEventListener("click",()=>showView(3));
+  document.getElementById("v3-back").addEventListener("click",()=>showView(2));
+  document.getElementById("v3-fwd").addEventListener("click",()=>showView(4));
+  document.getElementById("v4-explore").addEventListener("click",()=>showView(2));
+  document.getElementById("v4-restart").addEventListener("click",startSimulation);
+  document.getElementById("full-list").addEventListener("click",e=>{e.preventDefault(); V2.floor="BOTH"; document.querySelectorAll("#floor-toggle button").forEach(x=>x.classList.toggle("on",x.dataset.floor==="BOTH")); renderRankAndMap();});
+
+  // tutorial buttons
+  document.getElementById("tc-skip").addEventListener("click",endTutorial);
+  document.getElementById("tc-next").addEventListener("click",()=>{
+    if(tutIdx===TUT_STEPS.length-1) endTutorial();
+    else { tutIdx++; showTutStep(); }
+  });
+
+  showView(1);
+}
+document.addEventListener("DOMContentLoaded",init);
+</script>
+</body>
+</html>
