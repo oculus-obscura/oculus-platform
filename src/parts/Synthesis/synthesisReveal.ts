@@ -3,23 +3,30 @@
  *
  * Two modes, one vocabulary (fade + slight rise, expo.out, count-ups):
  *
- * DEFAULT (no markers, used by Views 3–4 and the placeholders): top-level
- * blocks stagger in DOM order — Part A's sensible default.
+ * DEFAULT (no markers, used by View 4 and the placeholders): top-level blocks
+ * stagger in DOM order — Part A's sensible default.
  *
- * MARKED (Part B1 — the reveal ORDER is the hierarchy): elements carrying
+ * MARKED (Parts B1/B2 — the reveal ORDER is the hierarchy): elements carrying
  * `data-reveal="<group>"` reveal group by group (1, 2, 3…), each group
  * starting GROUP_GAP after the previous, elements within a group staggering
- * in DOM order. Two variants change the motion, not the timing system:
- *   data-reveal-draw  — scaleX 0→1 from the left (hairlines, band dividers)
- *   data-reveal-pop   — scale up from the centre (map dots; tight stagger so
- *                       a whole dot field lands inside its group's window —
- *                       render dots largest-first for largest-first reveal)
- * Count-ups on .num elements start when their enclosing group starts, so a
- * number never counts inside a still-invisible panel.
+ * in DOM order. Variants change the motion, not the timing system:
+ *   data-reveal-draw        — scaleX 0→1 from the left (hairlines)
+ *   data-reveal-draw="y"    — scaleY 0→1 from the top (vertical dividers)
+ *   data-reveal-pop         — scale up from the centre (map dots, donuts)
+ *   data-reveal-out="left"  — arrive moving outward to the left (opposing
+ *   data-reveal-out="right"    arrows); fades in while translating to rest
+ *   data-reveal-dash="<w>"  — a clip rect whose width tweens 0→<w>: SVG
+ *                             lines DRAW left to right (pattern-safe — works
+ *                             for dashed strokes, unlike dashoffset tricks)
+ * `data-reveal-delay="<s>"` on any marked element positions it that many
+ * seconds after its group's start (sequencing inside one group). Count-ups
+ * on .num elements start when their enclosing mark starts, so a number never
+ * counts inside a still-invisible panel.
  *
  * Contracts (both modes):
  *  - re-runs on every activation; never blocks interaction (opacity/transform
- *    only); cleanup restores final state + exact text instantly
+ *    only); cleanup restores final state + exact text instantly (dash rects
+ *    restore their full markup width)
  *  - prefers-reduced-motion: no-op — the final state renders immediately
  */
 import gsap from "gsap";
@@ -29,10 +36,10 @@ const RISE = 18;
 const COUNT_MS = 700;
 const COUNT_MIN_PX = 18; // big figures count up; table/legend cells just render
 
-const GROUP_GAP = 0.42; // marked mode: seconds between group starts (~3s total over 6 groups)
+const GROUP_GAP = 0.42; // marked mode: seconds between group starts
 const GROUP_STAGGER = 0.09;
 const POP_STAGGER = 0.018;
-const POP_LAG = 0.22; // pops wait for their group's draws/fades (bands first, then dots)
+const POP_LAG = 0.22; // batched pops wait for their group's draws/fades
 
 /** rAF count-up on .num elements ≥ COUNT_MIN_PX; returns a cleanup. */
 function playCountUps(viewEl: HTMLElement, delayOf: (el: HTMLElement) => number): () => void {
@@ -73,6 +80,37 @@ function playCountUps(viewEl: HTMLElement, delayOf: (el: HTMLElement) => number)
   };
 }
 
+type Kind = "fade" | "drawx" | "drawy" | "pop" | "outl" | "outr" | "dash";
+
+function kindOf(el: HTMLElement): Kind {
+  if (el.hasAttribute("data-reveal-dash")) return "dash";
+  if (el.hasAttribute("data-reveal-draw")) return el.getAttribute("data-reveal-draw") === "y" ? "drawy" : "drawx";
+  if (el.hasAttribute("data-reveal-pop")) return "pop";
+  const out = el.getAttribute("data-reveal-out");
+  if (out === "left") return "outl";
+  if (out === "right") return "outr";
+  return "fade";
+}
+
+/** from/to vars per kind (batched or individual — same motion). */
+const KIND_VARS: Record<Exclude<Kind, "dash">, { from: gsap.TweenVars; to: gsap.TweenVars }> = {
+  fade: { from: { opacity: 0, y: 14 }, to: { opacity: 1, y: 0, duration: 0.8, ease: "expo.out" } },
+  drawx: {
+    from: { opacity: 0, scaleX: 0, transformOrigin: "left center" },
+    to: { opacity: 1, scaleX: 1, duration: 0.7, ease: "expo.out" },
+  },
+  drawy: {
+    from: { opacity: 0, scaleY: 0, transformOrigin: "center top" },
+    to: { opacity: 1, scaleY: 1, duration: 0.7, ease: "expo.out" },
+  },
+  pop: {
+    from: { opacity: 0, scale: 0.35, transformOrigin: "center center" },
+    to: { opacity: 1, scale: 1, duration: 0.55, ease: "back.out(1.7)" },
+  },
+  outl: { from: { opacity: 0, x: 16 }, to: { opacity: 1, x: 0, duration: 0.7, ease: "expo.out" } },
+  outr: { from: { opacity: 0, x: -16 }, to: { opacity: 1, x: 0, duration: 0.7, ease: "expo.out" } },
+};
+
 export function playViewReveal(viewEl: HTMLElement): () => void {
   if (window.matchMedia("(prefers-reduced-motion:reduce)").matches) return () => {};
 
@@ -95,31 +133,46 @@ export function playViewReveal(viewEl: HTMLElement): () => void {
     ordered.forEach((g, gi) => {
       const start = gi * GROUP_GAP;
       const els = groups.get(g)!;
-      const draws = els.filter((e) => e.hasAttribute("data-reveal-draw"));
-      const pops = els.filter((e) => e.hasAttribute("data-reveal-pop"));
-      const fades = els.filter((e) => !e.hasAttribute("data-reveal-draw") && !e.hasAttribute("data-reveal-pop"));
-      if (draws.length)
+      const batched: Partial<Record<Kind, HTMLElement[]>> = {};
+      const singles: { el: HTMLElement; kind: Kind; delay: number }[] = [];
+      els.forEach((el) => {
+        const kind = kindOf(el);
+        const dAttr = el.getAttribute("data-reveal-delay");
+        if (dAttr !== null || kind === "dash") {
+          singles.push({ el, kind, delay: dAttr !== null ? parseFloat(dAttr) || 0 : 0 });
+        } else {
+          (batched[kind] ??= []).push(el);
+        }
+      });
+      // batched buckets keep the Part-B1 semantics (incl. pops lagging their
+      // group's draws/fades so bands settle before dots land)
+      (Object.keys(batched) as Kind[]).forEach((kind) => {
+        if (kind === "dash") return;
+        const list = batched[kind]!;
+        const v = KIND_VARS[kind as Exclude<Kind, "dash">];
+        const at =
+          kind === "pop" && (batched.fade?.length || batched.drawx?.length || batched.drawy?.length) ? start + POP_LAG : start;
         tl.fromTo(
-          draws,
-          { opacity: 0, scaleX: 0, transformOrigin: "left center" },
-          { opacity: 1, scaleX: 1, duration: 0.7, ease: "expo.out", stagger: GROUP_STAGGER, clearProps: "opacity,transform" },
-          start,
+          list,
+          v.from,
+          { ...v.to, stagger: kind === "pop" ? POP_STAGGER : GROUP_STAGGER, clearProps: "opacity,transform" },
+          at,
         );
-      if (fades.length)
-        tl.fromTo(
-          fades,
-          { opacity: 0, y: 14 },
-          { opacity: 1, y: 0, duration: 0.8, ease: "expo.out", stagger: GROUP_STAGGER, clearProps: "opacity,transform" },
-          start,
-        );
-      if (pops.length)
-        tl.fromTo(
-          pops,
-          { opacity: 0, scale: 0.35, transformOrigin: "center center" },
-          { opacity: 1, scale: 1, duration: 0.55, ease: "back.out(1.7)", stagger: POP_STAGGER, clearProps: "opacity,transform" },
-          start + (draws.length || fades.length ? POP_LAG : 0),
-        );
-      els.forEach((el, i) => delayMs.set(el, (start + i * 0.05) * 1000));
+      });
+      // individually positioned marks (data-reveal-delay / dash draws)
+      singles.forEach(({ el, kind, delay }) => {
+        if (kind === "dash") {
+          const w = parseFloat(el.getAttribute("data-reveal-dash") || "0") || 0;
+          tl.fromTo(el, { attr: { width: 0 } }, { attr: { width: w }, duration: 0.75, ease: "power2.inOut" }, start + delay);
+        } else {
+          const v = KIND_VARS[kind];
+          tl.fromTo(el, v.from, { ...v.to, clearProps: "opacity,transform" }, start + delay);
+        }
+      });
+      els.forEach((el, i) => {
+        const dAttr = el.getAttribute("data-reveal-delay");
+        delayMs.set(el, (start + (dAttr !== null ? parseFloat(dAttr) || 0 : i * 0.05)) * 1000);
+      });
     });
     const stopCounts = playCountUps(viewEl, (n) => {
       const host = n.closest<HTMLElement>("[data-reveal]");
@@ -128,6 +181,11 @@ export function playViewReveal(viewEl: HTMLElement): () => void {
     return () => {
       tl.kill();
       gsap.set(marked, { clearProps: "opacity,transform" });
+      // dash clip rects own their width attr — restore the full markup value
+      marked.forEach((el) => {
+        const w = el.getAttribute("data-reveal-dash");
+        if (w) gsap.set(el, { attr: { width: parseFloat(w) || 0 } });
+      });
       stopCounts();
     };
   }

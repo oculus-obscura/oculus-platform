@@ -41,6 +41,11 @@ export interface SynthesisData {
   sessionEnd: { timer: number; went_outside: number };
   sessionsZeroSpend: number;
   avgElapsedWentOutside: number;
+  /** Part B2 fix, ADDITIVE: every non-refusal interaction's `spend` (refusals
+   *  excluded — they are non-purchases, not $0 buys). Median simulated
+   *  spending is the median of THIS list; a median cannot be derived from the
+   *  per-store counts above, so the raw values must reach the model. */
+  purchaseSpends: number[];
   /** Part A (UI overhaul), ADDITIVE — not part of the mirrored prototype
    *  contract above: a small sample of REAL values from the live rows
    *  (truncated session ids, timestamps, elapsed clocks) consumed by the
@@ -208,14 +213,17 @@ export async function fetchSynthesisData(): Promise<SynthesisData | null> {
     fragments.push(`${Math.floor(el / 60)}:${String(el % 60).padStart(2, "0")}`);
   }
 
-  // ---- distinct-session user metrics from interactions ----
+  // ---- distinct-session user metrics + purchase spends from interactions ----
   const openedRetail = new Set<string>();
   const completedPurchase = new Set<string>();
   const rejectedAny = new Set<string>();
+  const purchaseSpends: number[] = [];
   for (const row of interactions) {
     if (row.category === "shop") openedRetail.add(row.session_id);
-    if (row.choice !== "wouldnt_shop") completedPurchase.add(row.session_id);
-    else rejectedAny.add(row.session_id);
+    if (row.choice !== "wouldnt_shop") {
+      completedPurchase.add(row.session_id);
+      purchaseSpends.push(Number(row.spend) || 0); // real spent amount; refusals never reach here
+    } else rejectedAny.add(row.session_id);
   }
 
   return {
@@ -233,6 +241,7 @@ export async function fetchSynthesisData(): Promise<SynthesisData | null> {
     sessionsZeroSpend,
     // guarded mean: zero went_outside sessions -> 0 (Step 2 renders "—")
     avgElapsedWentOutside: elapsedOutsideN ? Math.round(elapsedOutsideSum / elapsedOutsideN) : 0,
+    purchaseSpends,
     fragments,
   };
 }

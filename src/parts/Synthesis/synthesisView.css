@@ -94,25 +94,57 @@
   /* transparent: the full-bleed substrate is the ground — no letterbox edges */
   background: transparent;
 }
-/* View 1's own ground (scoped to its section — the aggregate views carry no
-   photograph). z:-1 keeps it beneath the view's flowing content; the section
-   itself is opaque black so View 1 renders exactly as before Part A. */
+/* View 1's ground: the interior photograph the Simulation uses, full-bleed at
+   the ROOT of .syn (no letterbox — it covers the whole section, like the
+   substrate). It belongs to the round just played, so it stays continuous with
+   the Simulation. Graded down harder than the game (this is a document to read,
+   not a scene to play): darkened + desaturated, with a vignette + top/bottom
+   scrim so no panel text fights the image, and the aggregate views' ledger grid
+   laid over the top at low opacity — the bridge between "the space you were in"
+   and "the record of what you did". Fades in only under View 1. */
 .syn #view1 {
-  background: var(--space-black);
+  background: transparent;
 }
-.syn .view > .syn-bg {
+.syn-photo {
   position: absolute;
   inset: 0;
-  background: #050708 center/cover no-repeat;
-  background-image: url("/images/game/bg.jpg");
-  opacity: 0.26;
-  z-index: -1;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.55s ease;
+  background-color: #050708;
+  /* dark overlay composited over the photo (top layer), photo beneath */
+  background-image: linear-gradient(180deg, rgba(5, 7, 8, 0.5), rgba(5, 7, 8, 0.66)),
+    url("/images/game/bg.jpg");
+  background-size: cover, cover;
+  background-position: center center, center center;
+  background-repeat: no-repeat, no-repeat;
+  filter: brightness(0.44) saturate(0.72);
 }
-.syn .view > .syn-bg::after {
+.syn-photo.on {
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .syn-photo { transition: none; }
+}
+/* ledger grid laid over the photo — the visual bridge to the aggregate views */
+.syn-photo::before {
   content: "";
   position: absolute;
   inset: 0;
-  background: radial-gradient(120% 80% at 50% 0%, rgba(11, 69, 70, 0.18), transparent 60%);
+  background-image: repeating-linear-gradient(0deg, rgba(60, 207, 207, 0.05) 0 1px, transparent 1px 64px),
+    repeating-linear-gradient(90deg, rgba(60, 207, 207, 0.04) 0 1px, transparent 1px 256px);
+  opacity: 0.7;
+  mix-blend-mode: screen;
+}
+/* vignette + top/bottom scrim + a faint teal wash at the crown */
+.syn-photo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 82% 78% at 50% 42%, transparent 45%, rgba(0, 0, 0, 0.62) 100%),
+    linear-gradient(180deg, rgba(4, 6, 7, 0.34) 0%, transparent 24%, transparent 58%, rgba(4, 6, 7, 0.58) 100%),
+    radial-gradient(130% 90% at 50% 0%, rgba(11, 69, 70, 0.16), transparent 60%);
 }
 
 /* ── the generated data substrate (Part A — chrome, teal only) ── */
@@ -361,48 +393,136 @@
 .syn .cta-out:hover { background: rgba(11, 69, 70, 0.55); box-shadow: 0 0 22px rgba(60, 207, 207, 0.22); }
 .syn .cta-out svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.6; }
 
-/* ── VIEW 1 ── */
-.syn #view1 { padding: 34px 44px; }
-.syn #view1 .panel-t, .syn #view1 .lbl, .syn #view1 .data-table th, .syn #view1 .path-cap, .syn #view1 .path-floor, .syn #view1 .cta { font-family: "Michroma", sans-serif; font-weight: 400; }
-.syn #view1 .lbl { letter-spacing: 0.1em; }
-.syn #view1 .data-table th { letter-spacing: 0.05em; }
-.syn #view1 .stat-cell .lbl { font-size: 12px; letter-spacing: 0.04em; line-height: 1.3; }
+/* ── VIEW 1 · Individual Result ──
+   Panels match the aggregate views' glass treatment; the legibility floor is
+   13px throughout (labels, headers, captions), muted copy at --syn-text-raised
+   (#c6cbcb), tabular figures on every number. */
+.syn #view1 { padding: 30px 40px; }
+.syn #view1 .panel-t, .syn #view1 .lbl, .syn #view1 .data-table th, .syn #view1 .path-cap, .syn #view1 .cta { font-family: "Michroma", sans-serif; font-weight: 400; }
+.syn #view1 .lbl { font-size: 13px; letter-spacing: 0.1em; }
+.syn #view1 .muted { color: var(--syn-text-raised); }
+.syn #view1 .num { font-variant-numeric: tabular-nums; }
+.syn #view1 .data-table th { font-size: 13px; letter-spacing: 0.05em; }
+.syn #view1 .pill { font-size: 13px; }
 .syn #view1 .cta { font-weight: 400; letter-spacing: 0.14em; }
-.syn .v1-grid { display: grid; grid-template-columns: 472px 1fr; grid-template-rows: auto 1.15fr 1.05fr auto; gap: 16px; height: 100%; }
-.syn .stat-cell { border: 1px solid var(--border); border-radius: 10px; background: var(--panel); padding: 22px 24px; display: flex; flex-direction: column; justify-content: space-between; }
-.syn .stat-cell .top { display: flex; align-items: center; gap: 16px; }
-.syn .stat-cell .big { font-size: 52px; font-weight: 600; line-height: 1; }
-.syn .stat-cell .ico { width: 34px; height: 34px; flex: 0 0 auto; }
-.syn .stat-cell .ico svg { width: 34px; height: 34px; stroke: var(--teal-bright); fill: none; stroke-width: 1.6; }
-.syn .data-table { width: 100%; border-collapse: collapse; }
-.syn .data-table th { color: var(--titanium-pearl); text-transform: uppercase; letter-spacing: 0.12em; font-size: 12px; font-weight: 600; text-align: left; padding: 0 16px 14px; border-bottom: 1px solid var(--border-soft); }
-.syn .data-table td { padding: 18px 16px; border-bottom: 1px solid var(--border-soft); font-size: 17px; }
-.syn .store-name { font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; font-size: 16px; }
-.syn .empty-line { color: var(--titanium-pearl); font-size: 16px; text-align: center; padding: 34px 20px; line-height: 1.6; }
 
-/* path */
-.syn .path-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 0; width: 100%; padding: 2px 6px; position: relative; }
-.syn .path-row::before { content: ""; position: absolute; left: 20px; right: 20px; top: 50%; border-top: 2px dotted rgba(60, 207, 207, 0.5); z-index: 0; }
-.syn .path-node { position: relative; z-index: 1; flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 9px; min-width: 0; }
-.syn .path-card { width: 270px; min-height: 196px; border: 1px solid var(--border); border-radius: 10px; background: rgba(18, 26, 27, 0.94); padding: 22px 18px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: 10px; position: relative; }
-.syn .path-card.mini { width: 200px; min-height: 196px; justify-content: center; gap: 18px; }
-.syn .path-row.n3 .path-card { width: 360px; }
-.syn .path-row.n3 .path-card.mini { width: 300px; }
-.syn .path-row.n4 .path-card { width: 330px; }
-.syn .path-row.n4 .path-card.mini { width: 250px; }
-.syn .path-row.n5 .path-card { width: 300px; }
-.syn .path-row.n5 .path-card.mini { width: 225px; }
-.syn .path-row.n6 .path-card { width: 262px; padding: 18px 16px; min-height: 172px; }
-.syn .path-row.n6 .path-card.mini { width: 196px; min-height: 172px; padding: 18px 16px; }
-.syn .path-row.n6 .store-name { font-size: 17px !important; }
-.syn .path-row.n6 .path-card .num { font-size: 19px !important; }
-.syn #view1 .path-card .pill { padding: 8px 18px; font-size: 14px; }
-.syn .path-ico svg { width: 50px; height: 50px; stroke: var(--teal-bright); fill: none; stroke-width: 1.5; }
-.syn .path-badge { position: absolute; top: -12px; right: -12px; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; z-index: 2; }
-.syn .path-badge.ok { background: var(--teal); }
-.syn .path-badge.no { background: var(--amber); }
-.syn .path-cap { font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--titanium-pearl); text-align: center; }
-.syn .path-floor { font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--titanium-pearl); }
+.syn .v1-grid { display: grid; grid-template-columns: 472px 1fr; grid-template-rows: auto 1.15fr 1.05fr auto; gap: 16px; height: 100%; min-height: 0; }
+.syn .v1-left { grid-column: 1; grid-row: 1 / span 2; display: flex; flex-direction: column; gap: 10px; min-height: 0; overflow-y: auto; }
+.syn .v1-stats { grid-column: 2; grid-row: 1; display: grid; gap: 16px; }
+.syn .v1-tables { grid-column: 2; grid-row: 2; display: grid; grid-template-columns: 1.5fr 1fr; gap: 18px; align-items: stretch; min-height: 0; }
+.syn .v1-tables--outside { display: flex; }
+.syn .v1-path { grid-column: 1 / span 2; grid-row: 3; display: flex; flex-direction: column; padding: 16px 26px 12px; min-height: 0; }
+.syn .v1-footer { grid-column: 1 / span 2; grid-row: 4; display: flex; justify-content: space-between; align-items: center; gap: 30px; }
+
+/* left column: title + category / floors / extra-category panels */
+.syn .v1-h1 { font-size: 26px; letter-spacing: 0.05em; line-height: 1.15; }
+.syn .v1-eyebrow { margin-top: 6px; }
+.syn .v1-lede { font-size: 14px; margin-top: 8px; line-height: 1.4; }
+.syn .v1-cat { padding: 14px 26px; }
+.syn .v1-cat__val { font-size: 34px; margin-top: 8px; letter-spacing: 0.04em; }
+.syn .v1-floors { padding: 12px 26px; }
+.syn .v1-floors__val { font-size: 20px; margin-top: 8px; letter-spacing: 0.08em; color: var(--titanium-pearl); }
+.syn .v1-xcat { padding: 9px 24px; border-color: rgba(226, 79, 209, 0.45); background: linear-gradient(180deg, rgba(40, 12, 38, 0.42), var(--panel)); }
+.syn .v1-xcat__lbl { color: var(--plum); }
+.syn .v1-xcat__val { font-size: 18px; margin-top: 5px; letter-spacing: 0.08em; color: var(--plum); }
+.syn .v1-destpanel { padding: 20px 26px; }
+.syn .v1-destpanel__val { font-size: 22px; margin-top: 12px; letter-spacing: 0.06em; display: flex; align-items: center; gap: 12px; }
+.syn .v1-destpanel__ico { color: var(--teal-bright); display: inline-flex; }
+
+/* stat cells — aggregate glass treatment (radius/blur/hairline) */
+.syn .stat-cell { border: 1px solid var(--border); border-radius: 12px; background: var(--panel); backdrop-filter: blur(3px); padding: 20px 22px; display: flex; flex-direction: column; justify-content: space-between; gap: 14px; }
+.syn .stat-cell .top { display: flex; align-items: center; gap: 15px; }
+.syn .stat-cell .big { font-size: 50px; font-weight: 600; line-height: 1; }
+.syn .stat-cell__text { font-size: 26px; font-weight: 600; line-height: 1.15; }
+.syn .stat-cell .ico { width: 32px; height: 32px; flex: 0 0 auto; }
+.syn .stat-cell .ico svg { width: 32px; height: 32px; stroke: var(--teal-bright); fill: none; stroke-width: 1.6; }
+.syn #view1 .stat-cell .lbl { font-size: 13px; letter-spacing: 0.04em; line-height: 1.3; }
+
+/* purchases / rejected panels */
+.syn .v1-purch, .syn .v1-rej { padding: 20px 24px; display: flex; flex-direction: column; min-height: 0; }
+.syn .v1-panel-head { margin-bottom: 14px; }
+.syn .data-table { width: 100%; border-collapse: collapse; }
+.syn .data-table th { color: var(--titanium-pearl); text-transform: uppercase; letter-spacing: 0.12em; font-weight: 600; text-align: left; padding: 0 14px 13px; border-bottom: 1px solid var(--border-soft); }
+.syn .data-table td { padding: 15px 14px; border-bottom: 1px solid var(--border-soft); font-size: 16px; }
+.syn .store-name { font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; font-size: 15px; }
+.syn .data-table__total-l { color: var(--teal-bright); font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; font-size: 14px; border-bottom: 0; padding-top: 16px; }
+.syn .data-table__total-v { text-align: right; color: var(--teal-glow); font-size: 22px; font-weight: 600; border-bottom: 0; padding-top: 16px; }
+.syn .empty-line { color: var(--syn-text-raised); font-size: 15px; text-align: center; padding: 30px 20px; line-height: 1.6; margin: auto 0; }
+/* rejected table: fixed tracks so the outcome pill never wraps mid-phrase */
+.syn .rej-table { table-layout: fixed; }
+.syn .rej-table .rej-col-store { width: auto; }
+.syn .rej-table .rej-col-floor { width: 58px; }
+.syn .rej-table .rej-col-price { width: 96px; }
+.syn .rej-table .rej-col-choice { width: 176px; }
+.syn .rej-table .store-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.syn .rej-table .rej-choice { text-align: right; white-space: nowrap; }
+
+/* outside variant panel */
+.syn .v1-outside-panel { flex: 1; padding: 34px 40px; display: flex; flex-direction: column; justify-content: center; background: linear-gradient(180deg, rgba(8, 40, 42, 0.4), var(--panel)); }
+.syn .v1-outside-panel__lbl { color: var(--teal-bright); }
+.syn .v1-outside-panel__head { display: flex; align-items: center; gap: 24px; margin-top: 18px; }
+.syn .v1-outside-panel__ico { color: var(--teal-bright); flex: 0 0 auto; }
+.syn .v1-outside-panel__ico svg { width: 54px; height: 54px; stroke: currentColor; fill: none; stroke-width: 1.4; }
+.syn .v1-outside-panel__name { font-size: 50px; letter-spacing: 0.02em; line-height: 1.05; }
+.syn .v1-outside-panel__type { font-size: 20px; letter-spacing: 0.06em; margin-top: 18px; color: var(--titanium-pearl); }
+.syn .v1-outside-panel__hr { margin: 24px 0; }
+.syn .v1-outside-panel__foot { display: flex; align-items: flex-end; gap: 44px; }
+.syn .v1-outside-panel__spent { font-size: 44px; font-weight: 600; margin-top: 8px; }
+.syn .v1-outside-panel__note { max-width: 380px; font-size: 14px; line-height: 1.6; }
+
+/* ── Your Path — the transit route ── */
+.syn .v1-path__sub { font-size: 13px; margin-top: 5px; }
+.syn .path-viewport { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; overflow-x: auto; overflow-y: hidden; }
+.syn .path-track { position: relative; flex: 1; min-width: 100%; min-height: 0; }
+.syn .path-route-svg { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; overflow: visible; pointer-events: none; }
+.syn .path-row { position: relative; z-index: 1; height: 100%; display: flex; align-items: flex-start; justify-content: space-between; gap: 0; padding: 80px 8px 2px; }
+.syn .path-node { position: relative; flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 0; }
+.syn .path-card { width: 250px; min-height: 118px; border: 1px solid var(--border); border-radius: 12px; background: rgba(14, 20, 21, 0.82); backdrop-filter: blur(4px); padding: 12px 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; position: relative; }
+.syn .path-card.mini { width: 190px; gap: 14px; }
+.syn .path-card__name { text-align: center; }
+.syn .path-card__price { font-size: 22px; font-weight: 600; }
+.syn .path-mini-label { text-align: center; line-height: 1.2; }
+.syn .path-dest-label { font-size: 14px; letter-spacing: 0.04em; text-align: center; line-height: 1.25; }
+.syn .path-row.n3 .path-card { width: 300px; }
+.syn .path-row.n3 .path-card.mini { width: 250px; }
+.syn .path-row.n4 .path-card { width: 280px; }
+.syn .path-row.n4 .path-card.mini { width: 220px; }
+.syn .path-row.n5 .path-card { width: 258px; }
+.syn .path-row.n5 .path-card.mini { width: 208px; }
+.syn .path-row.n6 .path-card { width: 236px; padding: 14px; }
+.syn .path-row.n6 .path-card.mini { width: 186px; }
+.syn .path-row.n6 .store-name { font-size: 15px; }
+.syn .path-row.n6 .path-card__price { font-size: 19px; }
+.syn #view1 .path-card .pill { padding: 7px 16px; font-size: 13px; }
+.syn .path-ico svg { width: 46px; height: 46px; stroke: var(--teal-bright); fill: none; stroke-width: 1.5; }
+.syn .path-cap { font-size: 13px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--syn-text-raised); text-align: center; }
+.syn .path-empty-note { color: var(--syn-text-raised); font-size: 14px; letter-spacing: 0.04em; text-align: center; padding: 8px 0 2px; }
+
+/* the SVG route: hairline that draws, station nodes, travelling light, bands */
+.syn .pr-route { stroke: var(--teal-bright); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; opacity: 0.85; }
+.syn .pr-band { stroke: var(--smoked-titanium); stroke-width: 1; stroke-dasharray: 2 6; opacity: 0.5; }
+.syn .pr-band-label { fill: var(--syn-text-raised); font-family: "Space Grotesk", sans-serif; font-size: 13px; letter-spacing: 0.12em; text-anchor: end; opacity: 0.85; }
+.syn .pr-tick { stroke: var(--smoked-titanium); stroke-width: 1; opacity: 0.4; }
+.syn .pr-node__halo { fill: currentColor; opacity: 0.16; }
+.syn .pr-node__ring { stroke-width: 1.6; }
+.syn .pr-node--start, .syn .pr-node--end { color: var(--teal-glow); }
+.syn .pr-node--util, .syn .pr-node--buy { color: var(--teal-bright); }
+.syn .pr-node--reject { color: var(--amber); }
+.syn .pr-light__glow { fill: var(--teal-glow); opacity: 0.35; }
+.syn .pr-light__core { fill: #ffffff; }
+@media (prefers-reduced-motion: reduce) {
+  .syn .pr-light { display: none; }
+}
+
+/* footer: session highlight + CTA */
+.syn .v1-highlight { flex: 1; padding: 18px 30px; }
+.syn .v1-hl-row { display: flex; align-items: center; gap: 40px; }
+.syn .v1-hl-title { display: flex; align-items: center; gap: 14px; color: var(--teal-bright); flex: 0 0 auto; }
+.syn .v1-hl-cell { min-width: 0; }
+.syn .v1-hl-num { font-size: 30px; font-weight: 600; margin-top: 4px; }
+.syn .v1-hl-sub { font-size: 13px; color: var(--syn-text-raised); margin-top: 4px; letter-spacing: 0.03em; }
+.syn .v1-cta-wrap { display: flex; flex-direction: column; align-items: flex-end; gap: 11px; flex: 0 0 auto; }
+.syn .v1-cta-eyebrow { letter-spacing: 0.18em; }
 
 /* ── VIEW 2 — Part B1: five tiers. Between-tier space is large (the 22px
    row gap), within-tier space small — grouping reads from whitespace. ── */
@@ -758,57 +878,180 @@
 .syn .names-more { font-size: 12px; color: var(--teal-bright); letter-spacing: 0.04em; padding: 1px 3px; border-radius: 4px; white-space: nowrap; }
 .syn .names-more:hover { color: var(--teal-glow); }
 
-/* ── VIEW 3 ── */
-.syn #view3 { padding: 16px 34px 18px; display: grid; grid-template-rows: auto minmax(0, 1.16fr) minmax(0, 1fr) auto; gap: 13px; height: 100%; }
-.syn .v3-top { display: grid; grid-template-columns: 1fr 0.36fr 1fr; gap: 18px; align-items: stretch; min-height: 0; }
-.syn .offer-panel { border: 1px solid rgba(44, 224, 210, 0.4); border-radius: 12px; background: linear-gradient(180deg, rgba(10, 38, 38, 0.5), rgba(14, 20, 21, 0.6)); padding: 20px 26px; display: flex; flex-direction: column; justify-content: space-between; min-height: 0; }
-.syn .chose-panel { border: 1px solid rgba(60, 207, 207, 0.4); border-radius: 12px; background: linear-gradient(180deg, rgba(8, 40, 42, 0.42), rgba(14, 20, 21, 0.6)); padding: 20px 26px; display: flex; flex-direction: column; justify-content: space-between; min-height: 0; }
+/* ── VIEW 3 — Part B2: the confrontation ── */
+.syn #view3 { padding: 10px 34px; display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto auto auto; row-gap: 8px; height: 100%; }
+.syn .gap-head h1 { font-size: 22px; letter-spacing: 0.04em; line-height: 1.18; }
+.syn .gap-head__sub { font-size: 13px; margin-top: 4px; letter-spacing: 0.02em; }
+
+/* T2 · the thesis — one opposed pair, the multiple between */
+.syn .gap-hero { display: grid; grid-template-columns: 1fr 300px 1fr; align-items: center; column-gap: 24px; padding: 0 10px; }
+.syn .gap-hero__side { text-align: center; }
+.syn .gap-hero__lab { font-size: 12.5px; letter-spacing: 0.18em; text-transform: uppercase; font-weight: 600; }
+.syn .gap-hero__fig { font-size: 42px; line-height: 1; margin-top: 6px; letter-spacing: 0.02em; }
+.syn .gap-hero__side.offer .gap-hero__lab, .syn .gap-hero__side.offer .gap-hero__fig { color: var(--teal-bright); }
+.syn .gap-hero__side.chose .gap-hero__lab, .syn .gap-hero__side.chose .gap-hero__fig { color: var(--amber); }
+.syn .gap-hero__cap { font-size: 12px; margin-top: 5px; font-variant-numeric: tabular-nums; }
+.syn .gap-hero__mid { text-align: center; }
+.syn .gap-hero__vs { font-size: 13px; letter-spacing: 0.3em; color: var(--color-text-muted); text-transform: uppercase; }
+.syn .gap-hero__xlab { margin-top: 8px; font-size: 12.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--titanium-pearl); line-height: 1.6; }
+.syn .gap-hero__xlab b { color: var(--amber); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* T3 · the confrontation band — teal side | divider | amber side */
+.syn .gap-compare { display: grid; grid-template-columns: 1fr 170px 1fr; column-gap: 8px; min-height: 0; }
+.syn .offer-panel { border: 1px solid rgba(44, 224, 210, 0.4); border-radius: 12px; background: linear-gradient(180deg, rgba(10, 38, 38, 0.5), rgba(14, 20, 21, 0.6)); padding: 12px 20px; display: flex; flex-direction: column; justify-content: space-between; min-height: 0; overflow: hidden; }
+/* the choice side is AMBER — estimated behaviour, told from peripheral vision */
+.syn .chose-panel { border: 1px solid rgba(255, 176, 32, 0.35); border-radius: 12px; background: linear-gradient(180deg, rgba(46, 32, 6, 0.32), rgba(14, 20, 21, 0.6)); padding: 12px 20px; display: flex; flex-direction: column; justify-content: space-between; min-height: 0; overflow: hidden; }
+.syn .gap-divider { position: relative; display: flex; align-items: center; justify-content: center; min-height: 0; }
+.syn .gap-divider__line { position: absolute; top: 4px; bottom: 4px; left: 50%; width: 1px; background: linear-gradient(180deg, transparent, rgba(255, 176, 32, 0.55) 16%, rgba(255, 176, 32, 0.55) 84%, transparent); }
+.syn .gap-divider__chip { position: relative; z-index: 1; background: var(--space-black); border: 1px solid rgba(255, 176, 32, 0.3); border-radius: 10px; padding: 13px 10px; text-align: center; width: 136px; }
+.syn .gap-divider__t { font-size: 19px; letter-spacing: 0.2em; color: var(--amber); }
+.syn .gap-divider__arrows { display: flex; justify-content: space-between; padding: 0 4px; margin-top: 10px; }
+.syn .gap-divider__arrows svg { width: 26px; height: 26px; stroke: var(--amber); fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.syn .gap-divider__sub { margin-top: 10px; font-size: 12px; letter-spacing: 0.07em; color: var(--titanium-pearl); line-height: 1.5; }
+.syn .gap-chose-donut { display: flex; align-items: center; gap: 16px; border-top: 1px solid var(--border-soft); padding-top: 6px; }
+.syn .gap-chose-donut__ring { flex: 0 0 auto; }
 .syn .fig-row { display: flex; gap: 8px; }
 .syn .fig-row.divided .fig + .fig { border-left: 1px solid rgba(44, 224, 210, 0.28); }
 .syn .fig-row.divided-t .fig + .fig { border-left: 1px solid rgba(60, 207, 207, 0.28); }
 .syn .fig { flex: 1; text-align: center; padding: 0 6px; }
 /* Part A floor: labels ≥ 12px, count captions readable */
 .syn .fig .fn { font-size: 12px; font-style: italic; color: var(--titanium-pearl); opacity: 0.72; margin-top: 3px; font-variant-numeric: tabular-nums; }
-.syn .fig .fv { font-size: 30px; font-weight: 600; line-height: 1.05; }
-.syn .fig .fl { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-text-muted); margin-top: 6px; line-height: 1.35; }
+.syn .fig .fv { font-size: 24px; font-weight: 600; line-height: 1.05; }
+.syn .fig .fl { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-text-muted); margin-top: 4px; line-height: 1.3; }
 .syn .offer-panel .fig .fl, .syn .chose-panel .fig .fl { color: var(--titanium-pearl); }
-.syn .dist-cell { flex: 1; border: 1px solid rgba(44, 224, 210, 0.32); border-radius: 8px; padding: 18px 10px 15px; text-align: center; position: relative; overflow: hidden; background: linear-gradient(180deg, rgba(44, 224, 210, 0.05), rgba(44, 224, 210, 0.14)); }
-.syn .dist-cell .dband { font-size: 13px; color: var(--titanium-pearl); letter-spacing: 0.03em; }
-.syn .dist-cell .dpct { font-size: 32px; font-weight: 600; margin: 11px 0 4px; color: var(--titanium-pearl); }
+.syn .dist-cell { flex: 1; border: 1px solid rgba(44, 224, 210, 0.32); border-radius: 8px; padding: 8px 7px 7px; text-align: center; position: relative; overflow: hidden; background: linear-gradient(180deg, rgba(44, 224, 210, 0.05), rgba(44, 224, 210, 0.14)); }
+.syn .dist-cell .dband { font-size: 12.5px; color: var(--titanium-pearl); letter-spacing: 0.03em; }
+.syn .dist-cell .dpct { font-size: 20px; font-weight: 600; margin: 4px 0 2px; color: var(--titanium-pearl); }
 /* Part A floor: 12px, raised colour — sits on the busy teal-tinted cells */
 .syn .dist-cell .dcnt { font-size: 12px; color: var(--syn-text-raised); letter-spacing: 0.08em; }
-.syn .gap-mid { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 22px; }
-.syn .gap-mid .gt { color: var(--amber); font-size: 22px; letter-spacing: 0.2em; }
-.syn .gap-mid .gl { color: var(--titanium-pearl); font-size: 15px; line-height: 1.6; letter-spacing: 0.06em; }
-.syn .v3-bottom { display: grid; grid-template-columns: 2.4fr 1fr 1fr; gap: 16px; min-height: 0; }
-.syn .syn-line-chart { flex: 1; margin-top: 8px; display: flex; flex-direction: column; min-height: 0; }
-.syn .ex-card { border-radius: 10px; padding: 18px 16px; display: flex; flex-direction: column; align-items: center; text-align: center; justify-content: space-evenly; }
-.syn .obs-row { display: flex; gap: 14px; align-items: flex-start; }
-.syn .obs-row .oi { width: 44px; height: 44px; flex: 0 0 auto; border: 1.5px solid; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
-.syn .obs-row .oi svg { width: 22px; height: 22px; fill: none; stroke-width: 2.4; }
-.syn .obs-row .ov { font-size: 18px; font-weight: 600; letter-spacing: 0.04em; }
-.syn .obs-row .od { font-size: 14px; line-height: 1.5; color: var(--color-text-muted); margin-top: 4px; } /* Part A floor: never dimmer than muted */
+/* T4 · the payoff chart — largest element after the hero */
+.syn .gap-chart-panel { padding: 10px 22px 8px; display: flex; flex-direction: column; min-height: 0; }
+.syn .gap-chart-panel .syn-phead { padding: 0 0 6px; }
+.syn .gap-chart-note { font-size: 12px; line-height: 1.5; max-width: 480px; text-align: right; }
+.syn .gap-chart { display: block; margin-top: 4px; flex: none; }
+.syn .gc-axis-t { font-size: 12px; letter-spacing: 0.14em; fill: var(--color-text-muted); }
+.syn .gc-tick { font-size: 13px; fill: var(--titanium-pearl); font-variant-numeric: tabular-nums; }
+.syn .gc-band { font-size: 15px; fill: var(--titanium-pearl); }
+.syn .gc-nodata { font-size: 12px; font-style: italic; fill: var(--color-text-muted); letter-spacing: 0.04em; }
+.syn .gc-ptlabel .gc-val { font-size: 15px; font-weight: 600; fill: var(--amber); font-variant-numeric: tabular-nums; }
+.syn .gc-ptlabel .gc-cnt { font-size: 12px; fill: var(--color-text-muted); font-variant-numeric: tabular-nums; }
+/* plain-words legend, directly beneath the plot */
+.syn .gap-legend { display: flex; gap: 44px; justify-content: center; margin-top: 5px; font-size: 12.5px; color: var(--titanium-pearl); letter-spacing: 0.02em; flex-wrap: wrap; }
+.syn .gap-legend b { font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; font-size: 12px; }
+.syn .gap-legend i { display: inline-block; vertical-align: middle; width: 26px; margin-right: 8px; }
+.syn .gl-solid { border-top: 3px solid var(--amber); }
+.syn .gl-dash { border-top: 3px dashed var(--amber); }
 
-/* ── VIEW 4 ── */
-.syn #view4 { overflow: hidden; }
-.syn #v4-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -52%); text-align: center; z-index: 6; width: 1100px; }
-.syn #v4-center .v4-h { font-size: 68px; letter-spacing: 0.05em; line-height: 1.02; white-space: nowrap; }
-.syn #v4-center .v4-sub { font-size: 22px; letter-spacing: 0.26em; line-height: 1.85; margin-top: 22px; color: var(--titanium-pearl); }
-.syn .v4-stat { position: absolute; z-index: 7; width: 340px; --cc: var(--teal-bright); --frame: linear-gradient(0deg, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0)); padding: 20px 24px; border-radius: 16px; background: rgba(12, 15, 16, 0.5); backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05); }
-.syn .v4-stat::before { content: ""; position: absolute; inset: 0; border-radius: 16px; padding: 1.5px; background: var(--frame); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none; }
-.syn .v4-stat .sv { font-size: 62px; font-weight: 600; line-height: 1; color: var(--cc); }
-.syn .v4-stat .sd { font-size: 15px; letter-spacing: 0.09em; text-transform: uppercase; line-height: 1.5; margin-top: 8px; color: var(--titanium-pearl); }
-.syn .v4-stat .sc { font-size: 13px; font-style: italic; color: var(--cc); opacity: 0.85; margin-top: 12px; letter-spacing: 0.02em; }
-.syn #v4-leaders { position: absolute; inset: 0; z-index: 5; pointer-events: none; }
-.syn #v4-trail { position: absolute; right: 0; bottom: 0; width: 760px; height: 420px; z-index: 4; pointer-events: none; opacity: 0.9; }
-.syn #v4-note { position: absolute; left: 50%; bottom: 172px; transform: translateX(-50%); text-align: center; color: var(--titanium-pearl); font-size: 20px; line-height: 1.7; z-index: 6; opacity: 0.9; }
-.syn #v4-btns { position: absolute; left: 50%; bottom: 82px; transform: translateX(-50%); display: flex; gap: 26px; z-index: 6; }
-.syn #v4-btns .cta-out { white-space: nowrap; }
-/* Part A floor: the quiet restart stays quiet, but its label must read */
-.syn #v4-restart { border-color: var(--smoked-titanium); color: var(--color-text-muted); }
-.syn #v4-restart svg { stroke: var(--color-text-muted); }
-.syn #v4-restart:hover { border-color: var(--titanium-pearl); color: var(--titanium-pearl); background: rgba(80, 85, 86, 0.18); box-shadow: none; }
-.syn #v4-restart:hover svg { stroke: var(--titanium-pearl); }
+/* T5 · example stores + key observations */
+.syn .gap-foot { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; min-height: 0; }
+.syn .gap-ex-panel, .syn .gap-obs-panel { padding: 10px 18px; display: flex; flex-direction: column; min-height: 0; }
+.syn .gap-ex-note { font-size: 12px; margin-top: 3px; font-style: italic; }
+.syn .gap-ex-row { display: flex; align-items: stretch; gap: 12px; margin-top: 8px; flex: 1; min-height: 0; }
+.syn .gap-ex-vs { align-self: center; font-size: 13px; letter-spacing: 0.18em; color: var(--color-text-muted); flex: none; }
+.syn .gap-ex-card { flex: 1; min-width: 0; border-radius: 10px; padding: 9px 14px; display: flex; flex-direction: column; gap: 2px; }
+/* a matched, opposed pair — both audited (teal world), intensity opposes them */
+.syn .gap-ex-card.low { border: 1px solid rgba(44, 224, 210, 0.4); background: linear-gradient(180deg, rgba(44, 224, 210, 0.06), transparent); }
+.syn .gap-ex-card.high { border: 1px solid rgba(44, 224, 210, 0.8); background: linear-gradient(180deg, rgba(44, 224, 210, 0.12), transparent); }
+.syn .gap-ex-tag { font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--teal-bright); font-weight: 600; }
+.syn .gap-ex-name { font-size: 14px; letter-spacing: 0.1em; font-weight: 500; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.syn .gap-ex-floor { font-size: 12px; letter-spacing: 0.08em; }
+.syn .gap-ex-stat { margin-top: 3px; }
+.syn .gap-ex-val { font-size: 22px; font-weight: 600; color: var(--amber); } /* behaviour = amber */
+.syn .gap-ex-sub { font-size: 12px; margin-top: 1px; font-variant-numeric: tabular-nums; }
+.syn .gap-ex-price { display: inline-flex; align-items: baseline; gap: 8px; margin-top: 5px; font-size: 15px; font-weight: 600; color: var(--teal-bright); font-variant-numeric: tabular-nums; }
+.syn .gap-ex-price i { font-style: normal; font-size: 12px; font-weight: 500; letter-spacing: 0.12em; color: var(--color-text-muted); }
+.syn .gap-ex-prices { display: flex; gap: 20px; margin-top: 4px; flex-wrap: wrap; }
+.syn .gap-ex-prices .gap-ex-price { flex-direction: column; gap: 2px; align-items: flex-start; }
+.syn .gap-obs-list { display: flex; flex-direction: column; justify-content: space-between; flex: 1; margin-top: 6px; gap: 6px; }
+.syn .obs-row { display: flex; gap: 12px; align-items: flex-start; }
+.syn .obs-row .oi { width: 32px; height: 32px; flex: 0 0 auto; border: 1.5px solid; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+.syn .obs-row .oi svg { width: 18px; height: 18px; fill: none; stroke-width: 2.4; }
+.syn .obs-main { min-width: 0; }
+/* the finding is the statement; counts sit beneath in muted text */
+.syn .obs-find { font-size: 14px; font-weight: 600; letter-spacing: 0.03em; }
+.syn .obs-find.pending { color: var(--color-text-muted); font-weight: 500; } /* pending more data — honest, not broken */
+.syn .obs-sup { font-size: 12px; line-height: 1.35; margin-top: 1px; font-variant-numeric: tabular-nums; }
+
+/* T6 · closing statement */
+.syn .gap-close { display: flex; justify-content: space-between; align-items: center; gap: 30px; padding: 6px 24px; }
+.syn .gap-close__ico { width: 40px; height: 40px; border: 1.5px solid var(--teal-bright); border-radius: 50%; display: flex; align-items: center; justify-content: center; flex: 0 0 auto; box-shadow: 0 0 20px rgba(60, 207, 207, 0.35), inset 0 0 12px rgba(60, 207, 207, 0.2); }
+
+/* ── VIEW 4 — Part B4: "the record, written over the redaction".
+   The record sits as ledger entries directly on the grid — NO cards. The
+   redaction overlay reuses the Overview's withheld treatment verbatim (plum
+   bar 12% fill / 45% border, "Not disclosed" caps) and rests at opacity 0 so
+   reduced-motion / inactive / post-skip show only the written record + the
+   statement. Colours fixed: amber = behaviour, plum = withheld, teal =
+   measured. Percentages are WHOLE across this view. ── */
+.syn #view4 {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  padding: 28px 60px;
+}
+
+/* 1·2 — the statement (TOP of the reading order; resolves LAST in time) */
+.syn #v4-center { text-align: center; }
+.syn #v4-center .v4-h { font-size: 60px; letter-spacing: 0.05em; line-height: 1.02; white-space: nowrap; text-shadow: 0 0 22px rgba(26, 135, 135, 0.32); }
+.syn #v4-center .v4-sub { font-size: 19px; letter-spacing: 0.24em; line-height: 1.7; margin-top: 14px; color: var(--titanium-pearl); }
+
+/* 3 — the bridge line (around subtitle size, a pivot not a footnote) */
+.syn .v4-turn { font-size: 20px; letter-spacing: 0.03em; color: var(--titanium-pearl); font-style: italic; opacity: 0.92; text-align: center; }
+
+/* 4 — the ledger (register, no boxes). ONE grid shared by the dominant row
+   and the three supporting rows — three explicit tracks that cannot overlap:
+   a FIGURE column wide enough for the dominant "100%" (~536px at 112px, so
+   every figure left-aligns and none can bleed into the label), a flexible
+   LABEL column that wraps entirely within itself, and a SOURCE column that
+   right-aligns to one shared edge. Real ≥2.5rem gap between all three. */
+.syn .v4-ledger { width: min(1560px, 94%); display: flex; flex-direction: column; }
+.syn .led-rule { height: 1px; background: var(--border-soft); }
+.syn .led-rule--strong { height: 1.5px; background: var(--border); margin: 8px 0; }
+.syn .led-entry { position: relative; }
+.syn .led-record { min-width: 0; display: grid; grid-template-columns: 560px minmax(0, 1fr) auto; align-items: center; column-gap: 40px; }
+.syn .led-fig { grid-column: 1; min-width: 0; font-family: "Michroma", sans-serif; font-weight: 400; letter-spacing: 0.01em; color: var(--cc); font-variant-numeric: tabular-nums; text-align: left; }
+.syn .led-desc { grid-column: 2; min-width: 0; letter-spacing: 0.06em; text-transform: uppercase; line-height: 1.35; color: var(--titanium-pearl); }
+.syn .led-src { grid-column: 3; letter-spacing: 0.02em; color: var(--syn-text-raised); font-style: italic; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; align-self: center; }
+
+/* dominant entry — the sharpest finding, well above the rows (shared grid) */
+.syn .led-record.led-dom { padding: 8px 0 24px; }
+.syn .led-dom .led-fig { font-size: 112px; line-height: 0.92; }
+.syn .led-dom .led-desc { font-size: 24px; letter-spacing: 0.05em; }
+.syn .led-dom .led-src { font-size: 14px; }
+
+/* supporting rows — same grid, smaller figures (shared left edge + tab stop) */
+.syn .led-record.led-row { padding: 22px 0; }
+.syn .led-row .led-fig { font-size: 60px; line-height: 1; }
+.syn .led-row .led-desc { font-size: 23px; }
+.syn .led-row .led-src { font-size: 14px; }
+
+/* the wound — Overview's redaction, reused at readable presence (opacity 0 at rest) */
+.syn .led-redact { position: absolute; inset: 0; display: flex; align-items: center; gap: 28px; opacity: 0; pointer-events: none; }
+.syn .led-redact-label { flex: 1; min-width: 0; font-size: 23px; letter-spacing: 0.02em; color: color-mix(in srgb, var(--plum) 46%, var(--titanium-pearl)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.syn .led-redact--dom .led-redact-label { font-size: 30px; }
+.syn .led-redact-barwrap { position: relative; flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; min-width: 248px; min-height: 48px; padding: 8px 22px; }
+.syn .led-redact--dom .led-redact-barwrap { min-width: 384px; min-height: 88px; }
+.syn .led-redact-bar { position: absolute; inset: 0; transform-origin: left center; background: color-mix(in srgb, var(--plum) 12%, transparent); border: 1px solid color-mix(in srgb, var(--plum) 45%, transparent); border-radius: 2px; }
+.syn .led-redact-text { position: relative; font-size: 15px; font-weight: 500; letter-spacing: 0.2em; text-transform: uppercase; color: var(--plum); }
+.syn .led-redact--dom .led-redact-text { font-size: 20px; }
+
+/* 5 — the closing statement */
+.syn #v4-note { text-align: center; color: var(--titanium-pearl); font-size: 20px; line-height: 1.8; opacity: 0.85; }
+
+/* 6 — the invitation: a live indicator with a slow pulse */
+.syn .v4-live { display: inline-flex; align-items: center; gap: 11px; font-size: 16px; letter-spacing: 0.04em; color: var(--teal-bright); font-variant-numeric: tabular-nums; }
+.syn .v4-live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--teal-bright); box-shadow: 0 0 8px rgba(60, 207, 207, 0.7); animation: synLivePulse 2.4s ease-in-out infinite; }
+@keyframes synLivePulse { 0%, 100% { opacity: 0.4; transform: scale(0.85); } 50% { opacity: 1; transform: scale(1.15); } }
+@media (prefers-reduced-motion: reduce) { .syn .v4-live-dot { animation: none; opacity: 0.9; } }
+
+/* the two CTAs — real shell-register buttons; primary carries more weight */
+.syn #v4-btns { display: flex; align-items: center; gap: 24px; }
+.syn #v4-btns .cta-out, .syn #v4-btns .cta { white-space: nowrap; }
+.syn .v4-btn-primary .v4-play { width: 20px; height: 20px; fill: currentColor; stroke: none; transition: transform 0.25s; }
+.syn .cta.v4-btn-primary:hover .v4-play { transform: translateX(5px); }
 
 /* ── platform additions: invite, loading, empty (not in the prototype) ── */
 .syn .syn-play-invite {

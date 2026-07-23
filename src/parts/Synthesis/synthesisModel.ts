@@ -185,6 +185,7 @@ export interface SynthesisModel {
   purchasePct: number;
   rejectedAnyPct: number;
   medianSpend: number | null;
+  purchaseCount: number;
   restroomPctVal: number;
   zeroSpendCount: number;
   zeroSpendPct: number;
@@ -297,8 +298,11 @@ export function buildModel(data: SynthesisData): SynthesisModel {
   M.purchasePct = M.N ? um.completedPurchase / M.N : 0;
   M.rejectedAnyPct = M.N ? um.rejectedAny / M.N : 0;
 
-  // median simulated spending — null (renders "—") when nobody bought
-  M.medianSpend = median(M.storeStats.filter((s) => s.entrySelected > 0).map((s) => s.entryPrice));
+  // median simulated spending — the median of what was actually SPENT across
+  // every non-refusal interaction (refusals excluded upstream, not counted as
+  // $0 buys). null (renders "—") when nobody bought — never $0.
+  M.medianSpend = median(data.purchaseSpends);
+  M.purchaseCount = data.purchaseSpends.length;
   M.restroomPctVal = M.N ? ac.restroom / M.N : 0;
 
   // ── stats made possible by the frozen schema ──

@@ -139,39 +139,16 @@ export default function SynthesisView({ lastSession, onPlaySimulation }: Synthes
   }, []);
 
   // ---- reveal choreography on view enter ----
-  // View 1: the prototype's own count-up (.num >= 30px), UNTOUCHED.
-  // Views 2–4: the Part-A shared reveal (stagger + count-up), re-triggered on
-  // every activation — including when the model lands under an active view.
+  // View 1 (Individual) and View 4 (Ending) each own their ENTIRE reveal
+  //   internally (measured route + count-ups / convergence timeline) — skip the
+  //   generic reveal so the two systems don't fight.
+  // Views 2–3: the Part-A/B shared reveal (stagger + count-up), re-triggered
+  //   on every activation — including when the model lands under an active view.
   useEffect(() => {
     const el = stageRef.current?.querySelector<HTMLElement>(`#view${view}`);
     if (!el) return;
-    if (view !== 1) return playViewReveal(el);
-
-    if (window.matchMedia("(prefers-reduced-motion:reduce)").matches) return;
-    const rafs: number[] = [];
-    el.querySelectorAll<HTMLElement>(".num").forEach((n) => {
-      if (parseFloat(getComputedStyle(n).fontSize) < 30) return;
-      const txt = n.textContent?.trim() ?? "";
-      const m = txt.match(/^(\$?)([\d,]+(?:\.\d+)?)(%?)$/);
-      if (!m) return;
-      const prefix = m[1],
-        suffix = m[3];
-      const target = parseFloat(m[2].replace(/,/g, ""));
-      if (isNaN(target) || target === 0) return;
-      const dec = (m[2].split(".")[1] || "").length;
-      const dur = 850,
-        t0 = performance.now();
-      const step = (now: number) => {
-        const p = Math.min((now - t0) / dur, 1);
-        const e = 1 - Math.pow(1 - p, 3);
-        const val = target * e;
-        n.textContent = prefix + (dec ? val.toFixed(dec) : Math.round(val).toLocaleString("en-US")) + suffix;
-        if (p < 1) rafs.push(requestAnimationFrame(step));
-        else n.textContent = txt;
-      };
-      rafs.push(requestAnimationFrame(step));
-    });
-    return () => rafs.forEach(cancelAnimationFrame);
+    if (view === 1 || view === 4) return; // both self-manage
+    return playViewReveal(el);
   }, [view, M, lastSession]);
 
   // aggregate views share one placeholder while loading / empty / failed;
@@ -227,13 +204,15 @@ export default function SynthesisView({ lastSession, onPlaySimulation }: Synthes
   return (
     <div className="syn">
       <SynthesisBackdrop extra={bgExtra} />
+      {/* View 1's ground is the graded interior photo, full-bleed at the ROOT
+          level (no letterbox) — it belongs to the round just played. It fades
+          in only under View 1; the aggregate views keep the data substrate. */}
+      {hasSession && <div className={"syn-photo" + (view === 1 ? " on" : "")} aria-hidden="true" />}
       <div ref={wrapRef} className="syn-stagewrap">
         <div ref={stageRef} className="syn-stage">
           {hasSession && lastSession && (
             <section className={"view" + (view === 1 ? " active" : "")} id="view1">
-              {/* View 1 keeps its own photo ground, scoped to this section */}
-              <div className="syn-bg" aria-hidden="true" />
-              <View1Individual is={lastSession} onExplore={() => setView(2)} />
+              <View1Individual is={lastSession} active={view === 1} onExplore={() => setView(2)} />
             </section>
           )}
           {M ? (

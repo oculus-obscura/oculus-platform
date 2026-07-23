@@ -90,6 +90,31 @@ export function SegmentedControl<V extends string | number>({
   );
 }
 
+/**
+ * Prov — the small-sample provisional marker (amber dot + tooltip), shared by
+ * the aggregate views. Renders when the denominator is under 10; with `zero`
+ * it also renders at 0 as a "pending more data" marker (honest fallbacks that
+ * must not read as broken values). Styling: .syn-prov in synthesisView.css.
+ * (View 2 currently carries its own identical local copy — consolidation is
+ * polish-pass material, not worth touching a reviewed view for.)
+ */
+export function Prov({ d, unit = "sessions", zero = false }: { d: number; unit?: string; zero?: boolean }) {
+  if (d >= 10 || d < 0 || (d === 0 && !zero)) return null;
+  return (
+    <span className="syn-prov" tabIndex={0} role="note" aria-label={d > 0 ? `Provisional — based on only ${d} ${unit}, fewer than 10.` : `Pending — no ${unit} recorded yet.`}>
+      <span className="tip">
+        {d > 0 ? (
+          <>
+            Small sample: based on {d} {unit}. Treat as provisional until there are 10+.
+          </>
+        ) : (
+          <>No {unit} recorded yet — this figure resolves as sessions accumulate.</>
+        )}
+      </span>
+    </span>
+  );
+}
+
 export interface DonutSeg {
   value: number;
   color: string;
