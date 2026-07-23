@@ -9,6 +9,9 @@ import TurntableView, {
   TURNTABLE_VIDEO_SRC,
 } from "./parts/Turntable/TurntableView";
 import DashboardScroll from "./parts/Dashboard/DashboardScroll";
+import SimulationGame from "./parts/Simulation/SimulationGame";
+import SynthesisPlaceholder from "./parts/Synthesis/SynthesisPlaceholder";
+import LeaveConfirm from "./components/LeaveConfirm/LeaveConfirm";
 import { STATIONS } from "./parts/Dashboard/stationData";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -49,6 +52,14 @@ export default function App() {
   // How the overview is being entered: "return" (scrolled back up from the
   // dashboard) plays the retract in reverse — the record writes back in.
   const [overviewEntry, setOverviewEntry] = useState<"normal" | "return">("normal");
+  // How the simulation is entered: "handoff" (dashboard's interior still →
+  // match cut) or "direct" (nav item — plain mount at the start screen).
+  const [simEntry, setSimEntry] = useState<"direct" | "handoff">("direct");
+  // True while a game round is running (timer live). Navigating away then
+  // needs confirmation — the round would be discarded, not recorded.
+  const [simRoundActive, setSimRoundActive] = useState(false);
+  // The navigation target held while the leave-confirm dialog is open.
+  const [pendingLeave, setPendingLeave] = useState<PlatformView | null>(null);
   const lenisRef = useRef<Lenis | null>(null);
 
   // Lenis smooth scroll — normalises mouse-wheel vs trackpad deltas so the
@@ -99,6 +110,16 @@ export default function App() {
     warm.src = STATIONS[0].travelSrc;
   }, [view]);
 
+  // …and warm the game's assets while the user walks the dashboard, so the
+  // "Enter the Simulation" match cut composites over an already-decoded frame.
+  useEffect(() => {
+    if (view !== "dashboard") return;
+    for (const src of ["/images/game/bg.jpg", "/images/game/oculus-train.png", "/images/game/skip-hand.png"]) {
+      const img = new Image();
+      img.src = src;
+    }
+  }, [view]);
+
   // each view owns its own scroll world — reset on swap (through Lenis when
   // it's active, so its internal target can't fight the jump)
   useEffect(() => {
@@ -125,14 +146,21 @@ export default function App() {
   const handleNavigate = useCallback(
     (next: PlatformView) => {
       if (next === view) return;
+      // Mid-round, leaving the simulation needs a confirm — the round is
+      // discarded, never part-saved. The timer keeps running underneath.
+      if (view === "simulation" && simRoundActive) {
+        setPendingLeave(next);
+        return;
+      }
       if (view === "overview" && next === "dashboard") {
         setLeaving("dashboard"); // TurntableView retracts, then onRetracted swaps
         return;
       }
       if (next === "overview") setOverviewEntry("normal");
+      if (next === "simulation") setSimEntry("direct");
       setView(next);
     },
-    [view],
+    [view, simRoundActive],
   );
 
   const handleRetracted = useCallback(() => {
@@ -149,6 +177,25 @@ export default function App() {
     setOverviewEntry("return");
     setView("overview");
   }, []);
+
+  // the dashboard's end card → the game, backgrounds match-cut on the still
+  const handleEnterSimulation = useCallback(() => {
+    setSimEntry("handoff");
+    setView("simulation");
+  }, []);
+
+  const handleLeaveStay = useCallback(() => setPendingLeave(null), []);
+
+  // LEAVE: the game unmounts (its cleanup stops the clock), the session is
+  // discarded — nothing is written — and the requested section opens.
+  const handleLeaveConfirm = useCallback(() => {
+    if (pendingLeave) {
+      setSimRoundActive(false);
+      if (pendingLeave === "overview") setOverviewEntry("normal");
+      setView(pendingLeave);
+    }
+    setPendingLeave(null);
+  }, [pendingLeave]);
 
   return (
     <>
@@ -177,9 +224,25 @@ export default function App() {
       {view === "dashboard" && (
         // scrim: the nav needs separation from the bright graded video here
         <PlatformChrome key="dashboard" currentView="dashboard" onNavigate={handleNavigate} scrim>
-          <DashboardScroll onReturn={handleDashboardReturn} />
+          <DashboardScroll onReturn={handleDashboardReturn} onEnterSimulation={handleEnterSimulation} />
         </PlatformChrome>
       )}
+      {view === "simulation" && (
+        // scrim: same treatment — the nav sits over the bright interior photo
+        <PlatformChrome key="simulation" currentView="simulation" onNavigate={handleNavigate} scrim>
+          <SimulationGame
+            entry={simEntry}
+            onRoundActiveChange={setSimRoundActive}
+            onExitToSynthesis={() => setView("synthesis")}
+          />
+        </PlatformChrome>
+      )}
+      {view === "synthesis" && (
+        <PlatformChrome key="synthesis" currentView="synthesis" onNavigate={handleNavigate}>
+          <SynthesisPlaceholder />
+        </PlatformChrome>
+      )}
+      {pendingLeave !== null && <LeaveConfirm onStay={handleLeaveStay} onLeave={handleLeaveConfirm} />}
       {(view === "intro" || transitioning) && (
         <IntroSequence
           key="intro"

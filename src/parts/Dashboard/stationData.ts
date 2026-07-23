@@ -51,4 +51,4 @@ export const DESCENT = {
 export const INTERIOR_STILL_SRC = "/images/interior-still.jpg";
 
 /** Flip when the Simulation part ships — the end CTA enables itself. */
-export const SIMULATION_ENABLED = false;
+export const SIMULATION_ENABLED = true;

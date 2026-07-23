@@ -30,7 +30,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { label: "Overview", view: "overview", enabled: true },
   { label: "Data Dashboard", view: "dashboard", enabled: true },
-  { label: "Simulation", view: "simulation", enabled: false },
+  { label: "Simulation", view: "simulation", enabled: true },
   { label: "Synthesis", view: "synthesis", enabled: false },
 ];
 

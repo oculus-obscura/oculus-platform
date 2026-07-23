@@ -249,7 +249,7 @@ function ScrollGuide({ state }: { state: GuideState }) {
 /* ---------------------------------------------------------------------------
  * Interior end card — the record hands off to the simulation.
  * ------------------------------------------------------------------------- */
-function InteriorEnd({ asSection }: { asSection?: boolean }) {
+function InteriorEnd({ asSection, onEnter }: { asSection?: boolean; onEnter?: () => void }) {
   const body = (
     <>
       <p className="dash-end__line" data-reveal>
@@ -260,6 +260,7 @@ function InteriorEnd({ asSection }: { asSection?: boolean }) {
         className="dash-end__cta"
         disabled={!SIMULATION_ENABLED}
         aria-disabled={!SIMULATION_ENABLED || undefined}
+        onClick={SIMULATION_ENABLED ? onEnter : undefined}
         data-reveal
       >
         Enter the Simulation
@@ -292,7 +293,7 @@ interface ScrubState {
 /* ===========================================================================
  * SCRUB MODE — sticky stage + master scrubbed timeline.
  * ========================================================================= */
-function ScrubDashboard() {
+function ScrubDashboard({ onEnterSimulation }: { onEnterSimulation?: () => void }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const driverRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -680,7 +681,7 @@ function ScrubDashboard() {
           <div className="dash-scrim dash-scrim--vignette" aria-hidden="true" />
           {/* full-width bottom edge — grounds the bare ScrollGuide text */}
           <div className="dash-scrim dash-scrim--bottom" aria-hidden="true" />
-          <InteriorEnd />
+          <InteriorEnd onEnter={onEnterSimulation} />
           {STATIONS.map((s, i) => (
             <StationOverlay
               key={s.id}
@@ -879,7 +880,7 @@ function SequenceStation({
   );
 }
 
-function SequenceDashboard() {
+function SequenceDashboard({ onEnterSimulation }: { onEnterSimulation?: () => void }) {
   const [active, setActive] = useState(0);
   const needleRef = useRef<SVGGElement>(null);
   const descentRef = useRef<HTMLVideoElement>(null);
@@ -941,7 +942,7 @@ function SequenceDashboard() {
           />
         </div>
       </section>
-      <InteriorEnd asSection />
+      <InteriorEnd asSection onEnter={onEnterSimulation} />
       <Compass letter={STATIONS[active]?.compass ?? "W"} needleRef={needleRef} />
     </div>
   );
@@ -998,7 +999,7 @@ function StaticStation({ station, index }: { station: StationDef; index: number 
   );
 }
 
-function StaticDashboard() {
+function StaticDashboard({ onEnterSimulation }: { onEnterSimulation?: () => void }) {
   return (
     <div className="dashboard dashboard--flow dashboard--static">
       {STATIONS.map((s, i) => (
@@ -1009,7 +1010,7 @@ function StaticDashboard() {
           <img className="dash-still" src={INTERIOR_STILL_SRC} alt="Inside the Oculus concourse, rendered dark" />
         </div>
       </section>
-      <InteriorEnd asSection />
+      <InteriorEnd asSection onEnter={onEnterSimulation} />
     </div>
   );
 }
@@ -1021,9 +1022,11 @@ function StaticDashboard() {
 interface DashboardScrollProps {
   /** Fired when the user scrolls up past the dashboard's top. */
   onReturn?: () => void;
+  /** "Enter the Simulation" — the end card's CTA (match-cut handoff). */
+  onEnterSimulation?: () => void;
 }
 
-export default function DashboardScroll({ onReturn }: DashboardScrollProps) {
+export default function DashboardScroll({ onReturn, onEnterSimulation }: DashboardScrollProps) {
   const [mode, setMode] = useState<Mode>(() => resolveMode());
   const onReturnRef = useRef(onReturn);
   onReturnRef.current = onReturn;
@@ -1087,7 +1090,7 @@ export default function DashboardScroll({ onReturn }: DashboardScrollProps) {
     };
   }, []);
 
-  if (mode === "scrub") return <ScrubDashboard />;
-  if (mode === "sequence") return <SequenceDashboard />;
-  return <StaticDashboard />;
+  if (mode === "scrub") return <ScrubDashboard onEnterSimulation={onEnterSimulation} />;
+  if (mode === "sequence") return <SequenceDashboard onEnterSimulation={onEnterSimulation} />;
+  return <StaticDashboard onEnterSimulation={onEnterSimulation} />;
 }

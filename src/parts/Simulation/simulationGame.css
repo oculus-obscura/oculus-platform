@@ -1,0 +1,1334 @@
+/**
+ * simulationGame.css — ported VERBATIM from the approved mockup
+ * (design-reference/Oculus Obscura Commuter.dc.html). Every colour, duration,
+ * easing and layout value below is the mockup's; do not retune.
+ *
+ * DOCUMENTED COLOUR EXCEPTION (DESIGN.md): inside the Simulation, amber
+ * (#FFB020) is the sanctioned shell/UI accent for time pressure — the track
+ * ahead, the countdown, primary actions — with teal (#1A8787) denoting
+ * elapsed time. Raw hex is intentional here: the game is a self-contained
+ * ported artifact, not themed platform chrome.
+ *
+ * Intentional deviations from the mockup (the ONLY ones):
+ *   - --sim-top offsets the timer/screens below the platform chrome bar
+ *     (mockup timer sat at top:0; values mirror the platform's chrome clamps).
+ *   - overflow:hidden lives on .sim, NOT on html/body (would break the
+ *     Dashboard's scroll).
+ *   - 44px minimum tap targets on small controls (platform a11y floor); the
+ *     scatter names get an invisible hit-area extender instead of padding so
+ *     the measured word-cloud composition is untouched.
+ *   - .sim--enter: the dashboard match-cut entry (start UI fades up ~700ms).
+ */
+
+/* ---- keyframes (complete set from the mockup) ---- */
+@keyframes ocFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes ocUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes ocRise {
+  from { opacity: 0; transform: translate(-50%, -44%) scale(0.97); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+@keyframes ocBreathe {
+  0%, 100% { box-shadow: 0 0 22px rgba(255, 176, 32, 0.16), inset 0 0 0 1px rgba(255, 176, 32, 0.55); }
+  50% { box-shadow: 0 0 44px rgba(255, 176, 32, 0.42), inset 0 0 0 1px rgba(255, 176, 32, 0.85); }
+}
+@keyframes ocScan {
+  0% { transform: translateY(-6vh); opacity: 0; }
+  12% { opacity: 0.5; }
+  88% { opacity: 0.5; }
+  100% { transform: translateY(106vh); opacity: 0; }
+}
+@keyframes ocFloat {
+  0%, 100% { transform: translateY(-9px); }
+  50% { transform: translateY(9px); }
+}
+@keyframes ocGrain {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(-4%, 2%); }
+  50% { transform: translate(3%, -3%); }
+  75% { transform: translate(-2%, 4%); }
+}
+@keyframes ocArrive {
+  0% { opacity: 0; transform: translateX(-14%) scale(0.98); }
+  100% { opacity: 1; transform: translateX(0) scale(1); }
+}
+@keyframes ocHover {
+  0%, 100% { transform: translateY(-8px); }
+  50% { transform: translateY(8px); }
+}
+@keyframes ocRing {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(255, 176, 32, 0.9), 0 0 26px rgba(255, 176, 32, 0.35); }
+  50% { box-shadow: 0 0 0 1px rgba(255, 176, 32, 1), 0 0 46px rgba(255, 176, 32, 0.6); }
+}
+@keyframes ocDepart {
+  0% { left: -54%; opacity: 0; }
+  14% { opacity: 1; }
+  100% { left: 72%; opacity: 1; }
+}
+@keyframes ocClockIn {
+  from { opacity: 0; transform: scale(0.55); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes ocClockHr {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(1080deg); }
+}
+@keyframes ocClockMin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(3240deg); }
+}
+@keyframes ocTrackDraw {
+  from { clip-path: inset(0 100% 0 0); -webkit-clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0 0 0 0); -webkit-clip-path: inset(0 0 0 0); }
+}
+@keyframes ocDrawEdge {
+  0% { left: 0; opacity: 0; }
+  6% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { left: 100%; opacity: 0; }
+}
+
+/* ============ ROOT ============ */
+.sim {
+  /* deviation: clearance below the fixed platform chrome (mirrors the
+     platform's own clamps); everything the mockup pinned to top:0 hangs
+     off this instead */
+  --sim-top: clamp(64px, 9vh, 84px);
+  /* shared rail geometry (the persistent assembly lives at .sim level):
+     terminus inset from the right in the HERO pose + rail-bed baseline */
+  --sim-term-inset: clamp(48px, 8vw, 140px);
+  --sim-track-b: clamp(120px, 20vh, 190px);
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden; /* scoped here — NOT on html/body */
+  z-index: 1; /* stacking context: all game layers stay below the chrome bar (z10) */
+  background: #0a0a0a url(/images/game/bg.jpg) center center / cover no-repeat;
+  font-family: "Space Grotesk", system-ui, sans-serif;
+  color: #e8e8e3;
+  -webkit-font-smoothing: antialiased;
+}
+@media (max-width: 767px) {
+  .sim {
+    --sim-top: clamp(118px, 17vh, 140px); /* two-row chrome */
+  }
+}
+
+.sim ::selection {
+  background: rgba(255, 176, 32, 0.28);
+}
+.sim button:focus-visible {
+  outline: 2px solid #ffb020;
+  outline-offset: 2px;
+}
+
+/* dashboard match-cut underlay: the exact still the descent ended on, same
+   cover/centre geometry, so the background never moves during the handoff */
+.sim__underlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center center;
+  z-index: 0;
+}
+
+/* the game's start-screen layers composite in over the still (~700ms) */
+.sim--enter .sim__vignette,
+.sim--enter .sim-start__scrim {
+  animation: ocFade 700ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* start-screen redesign: caret blink (intro treatment), terminus pulse,
+   amber CTA breathing (ctaPulse amplitudes, amber per the DESIGN.md exception) */
+@keyframes simBlink {
+  0%, 48% { opacity: 1; }
+  49%, 100% { opacity: 0; }
+}
+@keyframes simTermPulse {
+  0%, 100% { box-shadow: 0 0 10px rgba(255, 176, 32, 0.8), 0 0 22px rgba(255, 176, 32, 0.4); }
+  50% { box-shadow: 0 0 16px rgba(255, 176, 32, 1), 0 0 38px rgba(255, 176, 32, 0.65); }
+}
+@keyframes simStartPulse {
+  0%, 100% { box-shadow: 0 0 14px rgba(255, 176, 32, 0.28); }
+  50% { box-shadow: 0 0 32px rgba(255, 176, 32, 0.62); }
+}
+@keyframes simStartPulseHover {
+  0%, 100% { box-shadow: 0 0 26px rgba(255, 176, 32, 0.5); }
+  50% { box-shadow: 0 0 48px rgba(255, 224, 160, 0.78); }
+}
+
+/* ============ VIGNETTE (quiet legibility only) ============ */
+.sim__vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: radial-gradient(120% 90% at 50% 42%, transparent 40%, rgba(10, 10, 10, 0.55) 82%, rgba(10, 10, 10, 0.86) 100%);
+}
+
+/* ============ TIMER BAR (readout home + the rail's landing slot) ============
+   The rail itself is the persistent .sim-rail assembly below — the bar keeps
+   only the flex spacer (measured to derive the TIMER pose) and the readout. */
+.sim-timer {
+  position: absolute;
+  top: var(--sim-top); /* mockup: 0 */
+  left: 0;
+  right: 0;
+  height: clamp(64px, 10vh, 92px);
+  display: flex;
+  align-items: flex-end;
+  gap: 0;
+  padding: 0 24px 14px;
+  z-index: 60;
+  pointer-events: none; /* nothing interactive here; never block the stage */
+}
+.sim-timer__rail {
+  flex: 1;
+  position: relative;
+  height: clamp(46px, 7.5vh, 66px);
+}
+/* pre-flight (start screen): the bar exists for measurement, readout hidden */
+.sim-timer.is-pre .sim-timer__readout {
+  opacity: 0;
+  visibility: hidden;
+}
+.sim-timer__readout {
+  flex: 0 0 auto;
+  align-self: flex-end;
+  margin-left: -6px;
+  transform: translateY(calc(50% - 11px));
+  background: rgba(8, 9, 10, 0.88);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(232, 232, 227, 0.16);
+  border-radius: 9px;
+  padding: 7px 20px;
+  font-family: "Space Grotesk", sans-serif;
+  font-weight: 600;
+  font-size: 1.6rem;
+  letter-spacing: 0.06em;
+  color: #e8e8e3;
+  font-feature-settings: "tnum" 1, "zero" 1;
+  box-shadow: inset 0 0 0 1px rgba(232, 232, 227, 0.04), 0 0 22px rgba(0, 0, 0, 0.5);
+  text-shadow: 0 0 12px rgba(232, 232, 227, 0.25);
+}
+
+/* ============ BACK (bottom-left, floor screens) ============ */
+.sim-back {
+  position: absolute;
+  bottom: 38px;
+  left: 28px;
+  z-index: 70;
+  min-height: 44px; /* deviation: tap-target floor (mockup ~33px) */
+  background: rgba(14, 17, 18, 0.6);
+  -webkit-backdrop-filter: blur(20px) saturate(120%);
+  backdrop-filter: blur(20px) saturate(120%);
+  border: 1px solid rgba(232, 232, 227, 0.16);
+  border-radius: 9px;
+  padding: 9px 18px;
+  color: #e8e8e3;
+  font-family: "Space Grotesk", sans-serif;
+  font-weight: 600;
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  cursor: pointer;
+  transition: all 160ms;
+  text-shadow: 0 0 10px rgba(232, 232, 227, 0.2);
+}
+.sim-back:hover {
+  border-color: rgba(255, 176, 32, 0.7);
+  box-shadow: 0 0 26px rgba(255, 176, 32, 0.24);
+}
+
+/* ============ START (editorial title card) ============
+   Left-aligned text over the interior; a hairline departure track draws
+   across the lower screen and the train brakes in to the terminus node.
+   Typewriter/word cadences + caret mirror the intro (IntroSequence.tsx);
+   orchestration lives in SimulationGame's start timeline. */
+.sim-start {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  overflow: hidden;
+}
+/* full-height left-edge legibility scrim — dissolves rightward, never a box */
+.sim-start__scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(to right, rgba(10, 10, 10, 0.7) 0%, rgba(10, 10, 10, 0.42) 34%, transparent 62%);
+}
+/* editorial block: upper-middle, aligned to the platform's container gutter */
+.sim-start__text {
+  position: absolute;
+  left: var(--space-6);
+  top: calc(var(--sim-top) + clamp(48px, 12vh, 150px));
+  z-index: 2;
+  /* the 46ch measure binds only the copy (below); the title may run wider */
+  max-width: calc(100vw - 2 * var(--space-6));
+}
+.sim-start__title {
+  margin: 0;
+  font-family: "Michroma", sans-serif;
+  font-weight: 400;
+  font-size: clamp(1.35rem, 2.8vw, 2.55rem);
+  letter-spacing: 0.12em;
+  line-height: 1.24;
+  color: #e8e8e3;
+  text-align: left;
+  text-shadow: 0 0 1px rgba(232, 232, 227, 0.4), 0 0 30px rgba(232, 232, 227, 0.14), 0 2px 20px rgba(0, 0, 0, 0.7);
+}
+.sim-start__tword {
+  white-space: nowrap; /* type letter-by-letter, wrap only between words */
+}
+.sim-start__char {
+  display: inline-block;
+  opacity: 0;
+}
+/* caret — the intro title's treatment verbatim, same blink */
+.sim-start__caret {
+  opacity: 0;
+  display: inline-block;
+}
+.sim-start__caret-bar {
+  display: inline-block;
+  width: 0.07em;
+  height: 0.92em;
+  background: #1a8787;
+  margin-left: 0.1em;
+  vertical-align: -0.06em;
+  box-shadow: 0 0 9px rgba(26, 135, 135, 0.85);
+  animation: simBlink 1.05s steps(1) infinite;
+}
+/* bare paragraph — no panel; layered shadow + the edge scrim carry legibility */
+.sim-start__copy {
+  margin: clamp(14px, 2.4vh, 26px) 0 0;
+  max-width: 46ch;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1rem;
+  line-height: 1.65;
+  color: #dde2e2;
+  letter-spacing: 0.01em;
+  text-align: left;
+  text-wrap: pretty;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9), 0 0 14px rgba(0, 0, 0, 0.65);
+}
+.sim-start__word {
+  display: inline-block;
+  margin-right: 0.28em;
+  opacity: 0;
+}
+
+/* ============ PERSISTENT RAIL ASSEMBLY (one continuous object) ============
+   ~2x viewport wide, terminus node at the midpoint (x = 100vw). Left half =
+   track behind the train (the start screen's rail); right half = the track
+   ahead (becomes the timer's remaining time). CSS anchors it in the HERO pose
+   — translate(0,0) puts the terminus at the start screen's terminus position —
+   and the TIMER pose is a measured translate applied by SimulationGame.
+   The transition between poses is a transform-only camera move; nothing inside
+   is created, destroyed, or repositioned relative to the rail. */
+.sim-rail {
+  position: absolute;
+  left: calc(-1 * var(--sim-term-inset)); /* midpoint lands at 100vw - inset */
+  bottom: var(--sim-track-b);
+  width: 200vw;
+  height: 20px;
+  z-index: 60; /* the timer bar's layer — same as the mockup's timer */
+  pointer-events: none;
+  --sim-fwd-w: 60vw; /* forward-rail (timer) span; JS-measured from the bar's slot */
+}
+.sim-rail.is-hidden {
+  visibility: hidden; /* end screen — the end sequence draws its own track */
+}
+.sim-rail__behind,
+.sim-rail__fwd {
+  position: absolute;
+  top: 0;
+  height: 100%;
+}
+.sim-rail__behind {
+  left: 0;
+  width: 100vw;
+  /* distance cue while in the HERO pose: strokes soften toward the terminus */
+  -webkit-mask-image: linear-gradient(to right, #000 0%, #000 52%, rgba(0, 0, 0, 0.55) 100%);
+  mask-image: linear-gradient(to right, #000 0%, #000 52%, rgba(0, 0, 0, 0.55) 100%);
+}
+.sim-rail__fwd {
+  left: 100vw;
+  /* the forward track spans exactly the timer's live rail, so once landed it
+     runs INTO the readout box (the mockup's look) with no overshoot beyond it;
+     its end slides on-screen only in the flight's final beats, just as the
+     readout fades up to meet it */
+  width: var(--sim-fwd-w);
+}
+/* crossties — the timer-track pattern, phase-continuous across the seam */
+.sim-rail__ties {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 2px;
+  bottom: 0;
+  background: repeating-linear-gradient(118deg, #ffb020 0 2px, transparent 2px 13px);
+  opacity: 0.5;
+}
+.sim-rail__fwd .sim-rail__ties {
+  background-position: -100vw 0; /* continue the behind-half's pattern phase */
+}
+.sim-rail__behind .sim-rail__ties {
+  /* gauge narrows slightly with the rails — drawing taper, not perspective */
+  clip-path: polygon(0 0, 100% 12%, 100% 88%, 0 100%);
+}
+.sim-rail__bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #ffb020;
+  box-shadow: 0 0 8px rgba(255, 176, 32, 0.5);
+  transform-origin: 0 50%;
+}
+.sim-rail__bar--a { top: 4px; }
+.sim-rail__bar--b { top: 10px; }
+.sim-rail__behind .sim-rail__bar--a { transform: rotate(0.045deg); }
+.sim-rail__behind .sim-rail__bar--b { transform: rotate(-0.045deg); }
+/* the start screen's dots keep their approved geometry: the visible hero rail
+   spans [viewport left .. terminus], i.e. assembly [inset .. 100vw] */
+.sim-rail__bdots {
+  position: absolute;
+  left: var(--sim-term-inset);
+  right: 0;
+  top: 0;
+  height: 100%;
+}
+/* station dots — the timer's unpassed treatment (passed = inline teal flip) */
+.sim-rail__dot {
+  position: absolute;
+  bottom: 11px;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow: 0 0 11px rgba(255, 255, 255, 0.85), 0 0 4px rgba(255, 255, 255, 0.95);
+  transform: translateX(-50%);
+  z-index: 4;
+  transition: background 260ms ease, box-shadow 260ms ease;
+}
+/* the timer's live span: terminus -> readout. Trail + game dots live in this
+   measured-width coordinate space. NOTE: this div is a child of __fwd, which
+   already sits at the terminus (left: 100vw in assembly space) — so it anchors
+   at 0 HERE. A second 100vw offset was compounding and parked the teal trail
+   and the game dots a full viewport off-screen. */
+.sim-rail__game {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: var(--sim-fwd-w);
+}
+/* DIM TEAL trail (spent time, behind the train's nose) */
+.sim-rail__trail {
+  position: absolute;
+  inset: 0;
+  transition: clip-path 250ms linear, -webkit-clip-path 250ms linear;
+  z-index: 2;
+}
+.sim-rail__trail .sim-rail__ties {
+  background: repeating-linear-gradient(118deg, #1a8787 0 2px, transparent 2px 13px);
+  background-position: -100vw 0;
+}
+.sim-rail__trail .sim-rail__bar {
+  background: #1a8787;
+  box-shadow: 0 0 8px rgba(26, 135, 135, 0.45);
+}
+/* glowing leading edge that travels with the start-screen draw */
+.sim-rail__edge {
+  position: absolute;
+  left: 0;
+  top: -7px;
+  width: 46px;
+  height: 34px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 224, 160, 0.95), rgba(255, 176, 32, 0.5) 45%, transparent 72%);
+  filter: blur(1px);
+  opacity: 0;
+  z-index: 5;
+}
+/* terminus: station node on the rail centreline at the assembly midpoint */
+.sim-rail__term {
+  position: absolute;
+  left: 100vw;
+  top: 12px;
+  width: 0;
+  height: 0;
+  z-index: 6;
+}
+.sim-rail__node {
+  position: absolute;
+  left: -5.5px;
+  top: -5.5px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #ffb020;
+  /* separate CSS animation — never part of the flight tween */
+  animation: simTermPulse 2.8s ease-in-out infinite;
+}
+.sim-rail__tick {
+  position: absolute;
+  left: -1px;
+  width: 2px;
+  height: 11px;
+  background: rgba(255, 176, 32, 0.75);
+  box-shadow: 0 0 8px rgba(255, 176, 32, 0.5);
+}
+.sim-rail__tick--t { top: -20px; }
+.sim-rail__tick--b { top: 9px; }
+/* soft bloom at the node (brake settle + the flight's lock-in pulse) */
+.sim-rail__bloom {
+  position: absolute;
+  left: -28px;
+  top: -21px;
+  width: 56px;
+  height: 42px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 224, 160, 0.9), rgba(255, 176, 32, 0.45) 45%, transparent 72%);
+  filter: blur(2px);
+  opacity: 0;
+}
+/* THE train — one image for both states, a child of the assembly. Its left is
+   the game-space nose position: nose at terminus when pct=0 (the start pose),
+   advancing right as time elapses. Only `left` transitions per tick — during
+   the flight pct is frozen, so the train never moves relative to the rail. */
+.sim-rail__train {
+  position: absolute;
+  bottom: 10px;
+  width: min(360px, 32vw);
+  height: auto;
+  transform: translateX(-100%);
+  transition: left 250ms linear;
+  z-index: 5;
+  filter: drop-shadow(0 14px 34px rgba(0, 0, 0, 0.6)) drop-shadow(0 0 22px rgba(26, 135, 135, 0.35));
+}
+
+/* ---- START — the platform's CTA register, amber accent ---- */
+.sim-start__btn {
+  position: absolute;
+  left: 50%;
+  bottom: clamp(30px, 6vh, 64px);
+  transform: translateX(-50%);
+  z-index: 7;
+  font-family: "Space Grotesk", sans-serif;
+  font-weight: 500;
+  font-size: clamp(0.92rem, 1.6vw, 1.05rem);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #e8e8e3;
+  background: rgba(255, 176, 32, 0.08);
+  -webkit-backdrop-filter: blur(16px) saturate(120%);
+  backdrop-filter: blur(16px) saturate(120%);
+  border: 1px solid rgba(255, 176, 32, 0.55);
+  border-radius: 12px;
+  padding: 14px 44px;
+  min-height: 44px;
+  cursor: pointer;
+  opacity: 0;
+  animation: simStartPulse 2.5s ease-in-out infinite;
+  transition:
+    background 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.sim-start__btn:hover {
+  background: rgba(255, 176, 32, 0.16);
+  border-color: rgba(255, 224, 160, 0.9);
+  animation: simStartPulseHover 2.5s ease-in-out infinite;
+}
+
+/* ============ CHOICE LAYOUT (also behind tutorial) ============ */
+.sim-choice {
+  position: absolute;
+  inset: 0;
+  z-index: 15;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 54px;
+  padding: calc(var(--sim-top) + 110px) 40px 60px; /* mockup: 110px top */
+}
+.sim-choice__q,
+.sim-outside__q {
+  background: rgba(11, 14, 15, 0.5);
+  -webkit-backdrop-filter: blur(20px) saturate(120%);
+  backdrop-filter: blur(20px) saturate(120%);
+  border: 1px solid rgba(26, 135, 135, 0.42);
+  border-radius: 999px;
+  padding: 15px 44px;
+  font-family: "Space Grotesk", sans-serif;
+  font-weight: 600;
+  font-size: 1.05rem;
+  letter-spacing: 0.12em;
+  color: #e8e8e3;
+  text-shadow: 0 0 14px rgba(232, 232, 227, 0.22), 0 1px 10px rgba(0, 0, 0, 0.7);
+  box-shadow: 0 0 34px rgba(26, 135, 135, 0.2), inset 0 0 28px rgba(6, 8, 9, 0.5);
+}
+.sim-outside__q {
+  padding: 15px 46px;
+}
+.sim-choice__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 22px;
+  justify-content: center;
+  max-width: 1040px;
+}
+.sim-choice__btn {
+  -webkit-backdrop-filter: blur(20px) saturate(120%);
+  backdrop-filter: blur(20px) saturate(120%);
+  border-radius: 13px;
+  padding: 22px 26px;
+  color: #e8e8e3;
+  font-family: "Space Grotesk", sans-serif;
+  font-weight: 600;
+  font-size: 1.05rem;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: all 160ms;
+  min-width: 200px;
+  text-shadow: 0 0 12px rgba(232, 232, 227, 0.2), 0 1px 8px rgba(0, 0, 0, 0.6);
+  background: rgba(14, 17, 18, 0.52);
+  border: 1px solid rgba(232, 232, 227, 0.14);
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.35);
+}
+.sim-choice__btn:hover:not(:disabled),
+.sim-choice__btn:focus-visible:not(:disabled) {
+  border-color: rgba(255, 176, 32, 0.75);
+  background: rgba(255, 176, 32, 0.08);
+  box-shadow: 0 0 34px rgba(255, 176, 32, 0.3);
+  transform: translateY(-2px);
+}
+/* restroom, used up */
+.sim-choice__btn:disabled {
+  background: rgba(14, 17, 18, 0.4);
+  border: 1px solid rgba(232, 232, 227, 0.08);
+  color: #6b7070;
+  opacity: 0.45;
+  cursor: not-allowed;
+  text-shadow: none;
+}
+
+/* ============ RESTROOM POPUP ============ */
+.sim-rest {
+  position: absolute;
+  z-index: 75;
+  width: 300px;
+  background: rgba(14, 17, 18, 0.72);
+  -webkit-backdrop-filter: blur(24px) saturate(130%);
+  backdrop-filter: blur(24px) saturate(130%);
+  border: 1px solid rgba(255, 176, 32, 0.4);
+  border-radius: 14px;
+  padding: 18px 22px;
+  text-align: center;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 36px rgba(255, 176, 32, 0.14);
+  animation: ocUp 260ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.sim-rest__kicker {
+  font-size: 0.66rem;
+  letter-spacing: 0.22em;
+  color: #ffb020;
+  margin-bottom: 10px;
+}
+.sim-rest__text {
+  font-family: "Space Grotesk", sans-serif;
+  font-weight: 500;
+  font-size: 1.05rem;
+  color: #e8e8e3;
+  letter-spacing: 0.02em;
+}
+.sim-rest__count {
+  font-weight: 600;
+  font-feature-settings: "tnum" 1;
+  color: #e8e8e3;
+}
+.sim-rest__bar {
+  margin-top: 14px;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(232, 232, 227, 0.1);
+  overflow: hidden;
+}
+.sim-rest__fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ffb020, #1a8787);
+  border-radius: 2px;
+  transition: width 1s linear;
+  box-shadow: 0 0 12px rgba(255, 176, 32, 0.5);
+}
+
+/* ============ TUTORIAL OVERLAY ============ */
+.sim-tut {
+  position: absolute;
+  inset: 0;
+  z-index: 70;
+}
+.sim-tut__tip {
+  position: absolute;
+  width: 380px;
+  background: rgba(14, 17, 18, 0.72);
+  -webkit-backdrop-filter: blur(24px) saturate(130%);
+  backdrop-filter: blur(24px) saturate(130%);
+  border: 1px solid rgba(255, 176, 32, 0.4);
+  border-radius: 14px;
+  padding: 20px 22px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 40px rgba(255, 176, 32, 0.12);
+  transition: left 420ms cubic-bezier(0.16, 1, 0.3, 1), top 420ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.sim-tut__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.sim-tut__step {
+  font-size: 0.64rem;
+  letter-spacing: 0.22em;
+  color: #ffb020;
+}
+.sim-tut__skip {
+  background: none;
+  border: none;
+  color: #8a9090;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 0.66rem;
+  letter-spacing: 0.14em;
+  cursor: pointer;
+  transition: color 160ms;
+  min-height: 44px; /* deviation: tap-target floor */
+  padding: 0 6px;
+}
+.sim-tut__skip:hover {
+  color: #e8e8e3;
+}
+.sim-tut__text {
+  margin: 0 0 20px;
+  font-size: 1rem;
+  line-height: 1.55;
+  color: #e8e8e3;
+  letter-spacing: 0.01em;
+  text-wrap: pretty;
+}
+.sim-tut__row {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+.sim-tut__back {
+  background: none;
+  border: 1px solid rgba(232, 232, 227, 0.18);
+  border-radius: 9px;
+  padding: 9px 20px;
+  color: #b8bebe;
+  font-family: "Space Grotesk", sans-serif;
+  font-weight: 500;
+  font-size: 0.82rem;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: all 160ms;
+  min-height: 44px; /* deviation: tap-target floor */
+}
+.sim-tut__back.is-first {
+  opacity: 0.35;
+  pointer-events: none;
+}
+.sim-tut__next {
+  background: rgba(255, 176, 32, 0.14);
+  border: 1px solid rgba(255, 176, 32, 0.65);
+  border-radius: 9px;
+  padding: 9px 26px;
+  color: #e8e8e3;
+  font-family: "Space Grotesk", sans-serif;
+  font-weight: 600;
+  font-size: 0.82rem;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+  transition: all 160ms;
+  min-height: 44px; /* deviation: tap-target floor */
+}
+.sim-tut__next:hover {
+  background: rgba(255, 176, 32, 0.34);
+  box-shadow: 0 0 22px rgba(255, 176, 32, 0.4);
+}
+.sim-tut__final {
+  position: absolute;
+  inset: 0;
+  background: rgba(8, 9, 10, 0.72);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  animation: ocFade 260ms ease;
+}
+.sim-tut__final-card {
+  max-width: 460px;
+  text-align: center;
+  background: rgba(14, 17, 18, 0.62);
+  -webkit-backdrop-filter: blur(24px) saturate(120%);
+  backdrop-filter: blur(24px) saturate(120%);
+  border: 1px solid rgba(255, 176, 32, 0.35);
+  border-radius: 16px;
+  box-shadow: 0 0 50px rgba(255, 176, 32, 0.14);
+  padding: 44px 48px;
+  animation: ocUp 400ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.sim-tut__final-title {
+  margin: 0 0 16px;
+  font-family: "Michroma", sans-serif;
+  font-weight: 400;
+  font-size: 1.25rem;
+  letter-spacing: 0.1em;
+  color: #e8e8e3;
+  text-shadow: 0 0 24px rgba(232, 232, 227, 0.16);
+}
+.sim-tut__final-copy {
+  margin: 0 0 30px;
+  color: #c4c9c9;
+  font-size: 0.98rem;
+  line-height: 1.6;
+}
+.sim-play {
+  background: rgba(255, 176, 32, 0.12);
+  border: none;
+  border-radius: 12px;
+  padding: 15px 72px;
+  color: #e8e8e3;
+  font-family: "Space Grotesk", sans-serif;
+  font-weight: 600;
+  font-size: 1.3rem;
+  letter-spacing: 0.16em;
+  cursor: pointer;
+  animation: ocBreathe 3s ease-in-out infinite;
+  transition: transform 160ms;
+}
+.sim-play:hover {
+  transform: translateY(-2px);
+}
+
+/* ============ FLOOR SCATTER ============ */
+.sim-floor {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+}
+/* scatter store-name hover: scale about own centre + amber glow. On the INNER button (no inline transform),
+   so the timer re-render can't stomp it; !important beats the inline colour/text-shadow. */
+.sim .ocN {
+  transform-origin: center center;
+  transition: transform 150ms cubic-bezier(0.16, 1, 0.3, 1), color 160ms, text-shadow 160ms;
+}
+.sim .ocN.live {
+  cursor: pointer;
+}
+.sim .ocN.live:hover,
+.sim .ocN.live:focus-visible {
+  transform: scale(1.15);
+  color: #ffffff !important;
+  text-shadow: 0 0 4px rgba(0, 0, 0, 0.9), 0 0 12px rgba(255, 176, 32, 0.78), 0 0 26px rgba(255, 176, 32, 0.55), 0 1px 3px rgba(0, 0, 0, 1) !important;
+}
+/* deviation: invisible hit-area extender so small names still give a >=44px
+   target without disturbing the measured composition */
+.sim .ocN.live {
+  position: relative;
+}
+.sim .ocN.live::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+}
+.sim .ocN--medium.live::after {
+  inset: -9px -6px;
+}
+.sim .ocN--small.live::after {
+  inset: -16px -8px;
+}
+
+.sim-floor__toggles {
+  position: absolute;
+  bottom: 36px;
+  left: 0;
+  right: 0;
+  display: flex;
+  gap: 18px;
+  justify-content: center;
+  z-index: 60;
+}
+.sim-tg {
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+  border-radius: 10px;
+  padding: 12px 30px;
+  font-family: "Space Grotesk", sans-serif;
+  font-weight: 600;
+  font-size: 1.02rem;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: all 160ms;
+  min-height: 44px;
+  background: rgba(12, 14, 15, 0.5);
+  border: 1px solid rgba(255, 176, 32, 0.32);
+  color: #b8bebe;
+}
+.sim-tg.is-active {
+  background: rgba(255, 176, 32, 0.16);
+  border: 1px solid rgba(255, 176, 32, 0.85);
+  color: #f5efe3;
+  box-shadow: 0 0 30px rgba(255, 176, 32, 0.35), inset 0 0 18px rgba(255, 176, 32, 0.12);
+  text-shadow: 0 0 14px rgba(255, 176, 32, 0.5);
+}
+
+/* ============ STORE CARD ============ */
+.sim-card-veil {
+  position: absolute;
+  inset: 0;
+  z-index: 28;
+  background: rgba(8, 9, 10, 0.26);
+  animation: ocFade 220ms ease;
+}
+.sim-card {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 40;
+  width: min(408px, 90vw);
+  animation: ocRise 260ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.sim-card__panel {
+  position: relative;
+  background: linear-gradient(160deg, rgba(20, 24, 25, 0.72), rgba(11, 13, 14, 0.72));
+  -webkit-backdrop-filter: blur(26px) saturate(130%);
+  backdrop-filter: blur(26px) saturate(130%);
+  border-radius: 18px;
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 176, 32, 0.4), inset 0 0 0 1px rgba(232, 232, 227, 0.06), inset 0 1px 0 rgba(232, 232, 227, 0.12), 0 0 60px rgba(255, 176, 32, 0.1);
+  padding: 30px 30px 32px;
+  text-align: center;
+  overflow: hidden;
+}
+.sim-card__sheen {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(120% 60% at 50% 0%, rgba(255, 176, 32, 0.08), transparent 60%);
+}
+.sim-card__meta {
+  position: relative;
+  font-family: "Space Grotesk", sans-serif;
+  font-weight: 600;
+  font-size: 0.6rem;
+  letter-spacing: 0.24em;
+  color: #ffb020;
+  margin-bottom: 12px;
+}
+.sim-card__name {
+  position: relative;
+  font-family: "Michroma", sans-serif;
+  font-weight: 400;
+  font-size: clamp(1rem, 2.4vw, 1.35rem);
+  letter-spacing: 0.08em;
+  color: #e8e8e3;
+  line-height: 1.24;
+  text-transform: uppercase;
+  text-shadow: 0 0 24px rgba(232, 232, 227, 0.18);
+}
+.sim-card__div {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 20px 0;
+}
+.sim-card__div-l {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 176, 32, 0.5));
+}
+.sim-card__div-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: #ffb020;
+  box-shadow: 0 0 10px rgba(255, 176, 32, 0.7);
+}
+.sim-card__div-r {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(255, 176, 32, 0.5), transparent);
+}
+.sim-card__bullets {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin-bottom: 24px;
+}
+.sim-card__bullet {
+  font-family: "Space Grotesk", sans-serif;
+  font-weight: 500;
+  font-size: 1.02rem;
+  letter-spacing: 0.02em;
+  color: #dce1e1;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.5);
+}
+.sim-card__ask {
+  position: relative;
+  font-size: 0.64rem;
+  letter-spacing: 0.2em;
+  color: #9fa5a5;
+  margin-bottom: 14px;
+}
+.sim-card__prices {
+  position: relative;
+  display: flex;
+  gap: 11px;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+.sim-price {
+  flex: 1;
+  min-width: 0;
+  min-height: 60px;
+  background: rgba(26, 135, 135, 0.12);
+  border: 1px solid rgba(26, 135, 135, 0.5);
+  border-radius: 11px;
+  padding: 11px 6px;
+  color: #e8e8e3;
+  font-family: "Space Grotesk", sans-serif;
+  font-weight: 600;
+  font-feature-settings: "tnum" 1;
+  cursor: pointer;
+  transition: all 160ms;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  align-items: center;
+  justify-content: center;
+}
+.sim-price:hover {
+  border-color: rgba(255, 176, 32, 0.85);
+  background: rgba(26, 135, 135, 0.22);
+  box-shadow: 0 0 26px rgba(255, 176, 32, 0.32);
+  transform: translateY(-2px);
+}
+.sim-price__tier {
+  font-size: 0.54rem;
+  letter-spacing: 0.16em;
+  color: #8fb6b6;
+}
+.sim-price__value {
+  font-size: 1.04rem;
+  color: #e8e8e3;
+}
+.sim-price__label {
+  font-size: 0.6rem;
+  letter-spacing: 0.04em;
+  color: #8fb6b6;
+}
+.sim-skip {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 9px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #9fa5a5;
+  transition: color 160ms;
+}
+.sim-skip:hover {
+  color: #e8e8e3;
+}
+.sim-skip__icon {
+  width: 62px;
+  height: 62px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sim-skip__img {
+  width: 60px;
+  height: 60px;
+  object-fit: contain;
+  opacity: 0.92;
+}
+.sim-skip__label {
+  font-size: 0.62rem;
+  letter-spacing: 0.2em;
+}
+
+/* ============ GO OUTSIDE ============ */
+.sim-outside {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 26px;
+  padding: calc(var(--sim-top) + 120px) 40px 60px; /* mockup: 120px top */
+  animation: ocFade 300ms ease;
+}
+.sim-outside__list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: min(400px, 88vw);
+}
+.sim-dest {
+  background: rgba(14, 17, 18, 0.55);
+  -webkit-backdrop-filter: blur(20px) saturate(120%);
+  backdrop-filter: blur(20px) saturate(120%);
+  border: 1px solid rgba(232, 232, 227, 0.16);
+  border-radius: 12px;
+  padding: 18px 26px;
+  color: #e8e8e3;
+  font-family: "Space Grotesk", sans-serif;
+  font-weight: 600;
+  font-size: 1.05rem;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: all 160ms;
+  text-shadow: 0 0 12px rgba(232, 232, 227, 0.2);
+}
+.sim-dest:hover {
+  border-color: rgba(255, 176, 32, 0.75);
+  background: rgba(255, 176, 32, 0.08);
+  box-shadow: 0 0 30px rgba(255, 176, 32, 0.28);
+  transform: translateY(-2px);
+}
+
+/* ============ END ============ */
+.sim-end {
+  position: absolute;
+  inset: 0;
+  z-index: 80;
+  background: radial-gradient(110% 80% at 50% 40%, rgba(10, 10, 10, 0.7), rgba(10, 10, 10, 0.92));
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(18px, 3.4vh, 40px);
+  padding: 32px;
+  animation: ocFade 500ms ease;
+}
+.sim-end__title {
+  margin: 0;
+  text-align: center;
+  font-family: "Michroma", sans-serif;
+  font-weight: 400;
+  font-size: clamp(1.4rem, 3vw, 2.5rem);
+  letter-spacing: 0.1em;
+  line-height: 1.3;
+  color: #e8e8e3;
+  text-shadow: 0 0 1px rgba(232, 232, 227, 0.4), 0 0 34px rgba(232, 232, 227, 0.16);
+  animation: ocUp 700ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.sim-end__clock {
+  position: relative;
+  width: clamp(74px, 9vh, 108px);
+  height: clamp(74px, 9vh, 108px);
+  animation: ocClockIn 620ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.sim-end__clock-face {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 176, 32, 0.72);
+  box-shadow: 0 0 26px rgba(255, 176, 32, 0.4), inset 0 0 18px rgba(255, 176, 32, 0.14);
+  background: radial-gradient(circle at 50% 50%, rgba(255, 176, 32, 0.06), transparent 70%);
+}
+.sim-end__tick-t {
+  position: absolute;
+  top: 5%;
+  left: 50%;
+  width: 2px;
+  height: 8%;
+  transform: translateX(-50%);
+  background: rgba(44, 224, 210, 0.7);
+}
+.sim-end__tick-b {
+  position: absolute;
+  bottom: 5%;
+  left: 50%;
+  width: 2px;
+  height: 8%;
+  transform: translateX(-50%);
+  background: rgba(44, 224, 210, 0.7);
+}
+.sim-end__tick-l {
+  position: absolute;
+  left: 5%;
+  top: 50%;
+  height: 2px;
+  width: 8%;
+  transform: translateY(-50%);
+  background: rgba(44, 224, 210, 0.7);
+}
+.sim-end__tick-r {
+  position: absolute;
+  right: 5%;
+  top: 50%;
+  height: 2px;
+  width: 8%;
+  transform: translateY(-50%);
+  background: rgba(44, 224, 210, 0.7);
+}
+.sim-end__hand-hr {
+  position: absolute;
+  left: calc(50% - 1.5px);
+  bottom: 50%;
+  width: 3px;
+  height: 26%;
+  border-radius: 2px;
+  transform-origin: bottom center;
+  background: #ffb020;
+  box-shadow: 0 0 10px rgba(255, 176, 32, 0.8);
+  animation: ocClockHr 2600ms cubic-bezier(0.5, 0, 0.2, 1) both;
+}
+.sim-end__hand-min {
+  position: absolute;
+  left: calc(50% - 1px);
+  bottom: 50%;
+  width: 2px;
+  height: 36%;
+  border-radius: 2px;
+  transform-origin: bottom center;
+  background: #ffb020;
+  box-shadow: 0 0 12px rgba(255, 176, 32, 0.85);
+  animation: ocClockMin 2600ms cubic-bezier(0.5, 0, 0.2, 1) both;
+}
+.sim-end__hub {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: #ffb020;
+  box-shadow: 0 0 12px rgba(255, 176, 32, 0.9);
+}
+.sim-end__trackwrap {
+  position: relative;
+  width: 100vw;
+  height: clamp(120px, 22vh, 220px);
+  overflow: hidden;
+}
+.sim-end__track {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 58px;
+  height: 22px;
+  animation: ocTrackDraw 2000ms linear both;
+}
+.sim-end__track-ties {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 2px;
+  bottom: 0;
+  background: repeating-linear-gradient(118deg, #ffb020 0 2px, transparent 2px 15px);
+  opacity: 0.48;
+}
+.sim-end__track-a,
+.sim-end__track-b {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #ffb020;
+  box-shadow: 0 0 14px rgba(255, 176, 32, 0.45);
+}
+.sim-end__track-a { top: 5px; }
+.sim-end__track-b { top: 12px; }
+.sim-end__edge {
+  position: absolute;
+  bottom: 52px;
+  width: 46px;
+  height: 34px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 224, 160, 0.95), rgba(255, 176, 32, 0.5) 45%, transparent 72%);
+  filter: blur(1px);
+  z-index: 2;
+  animation: ocDrawEdge 2000ms linear both;
+}
+.sim-end__train {
+  position: absolute;
+  bottom: 64px;
+  width: min(560px, 52vw);
+  z-index: 3;
+  left: 72%;
+  animation: ocDepart 2600ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  filter: drop-shadow(0 20px 44px rgba(0, 0, 0, 0.7)) drop-shadow(0 0 30px rgba(26, 135, 135, 0.4));
+}
+.sim-end__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  justify-content: center;
+}
+.sim-end__btn {
+  background: rgba(255, 176, 32, 0.12);
+  border: 1px solid rgba(255, 176, 32, 0.65);
+  border-radius: 12px;
+  padding: 15px 52px;
+  color: #e8e8e3;
+  font-family: "Space Grotesk", sans-serif;
+  font-weight: 600;
+  font-size: 1rem;
+  letter-spacing: 0.14em;
+  cursor: pointer;
+  transition: all 160ms;
+  animation: ocUp 700ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.sim-end__btn:hover {
+  background: rgba(255, 176, 32, 0.32);
+  box-shadow: 0 0 34px rgba(255, 176, 32, 0.42);
+  transform: translateY(-2px);
+}
+/* the mockup's synthesis-screen "RUN IT AGAIN", relocated to the end screen */
+.sim-end__again {
+  background: none;
+  border: 1px solid rgba(232, 232, 227, 0.2);
+  border-radius: 10px;
+  padding: 12px 34px;
+  color: #c4c9c9;
+  font-family: "Space Grotesk", sans-serif;
+  font-weight: 500;
+  font-size: 0.82rem;
+  letter-spacing: 0.14em;
+  cursor: pointer;
+  transition: all 160ms;
+  animation: ocUp 700ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  min-height: 44px;
+}
+.sim-end__again:hover {
+  border-color: rgba(255, 176, 32, 0.6);
+  color: #e8e8e3;
+  box-shadow: 0 0 22px rgba(255, 176, 32, 0.2);
+}

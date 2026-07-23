@@ -14,6 +14,10 @@ There are **two color worlds** and they must not bleed into each other.
 
 The shell is restrained *so that* when amber and plum show up, they read as meaning. Never use a data-encoding color for shell chrome, and never render decorative UI in amber or plum. If a color is popping and it isn't inside a chart, that's a bug.
 
+### Documented exception — the Simulation
+
+The Simulation section is the one sanctioned break in this rule. Inside the game, **amber (`--tp-data-amber`, #FFB020) is a shell/UI accent meaning time pressure and urgency** — the track ahead, the countdown, primary actions — with **teal denoting elapsed time**. There, amber does **not** carry the data-layer meaning of "uncertain / estimated"; it is the clock, not the data. Everywhere outside the Simulation, the original rule stands unchanged: a data color in shell chrome is a bug.
+
 ---
 
 ## Token architecture (this is your flexibility mechanism)
@@ -351,7 +355,7 @@ Short specs; derive exact values from tokens above.
 **Never**
 - Neon / cyberpunk glow, oversaturated cyan, or gaming-style visuals (brand spec, and it'll cheapen the argument).
 - Hard-edged gradients — flurry is soft, layered, translucent only.
-- Data-encoding colors (amber/plum especially) used as decorative UI chrome.
+- Data-encoding colors (amber/plum especially) used as decorative UI chrome (sole exception: the Simulation's amber-as-urgency — see "The one idea to hold onto").
 - Fake Michroma bold via font-weight; it's 400 only.
 - Small body text in shell teal.
 - Drop shadows for elevation — use surface tint + hairline + glow.
